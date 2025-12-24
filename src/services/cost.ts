@@ -1,4 +1,3 @@
-import { PRODUCT_COST } from "@/config/productCost";
 import { ExcelSaleRow } from "@/types/excelType";
 
 export type SaleRow = {
@@ -10,24 +9,27 @@ export type SaleRow = {
 };
 
 export type CostRow = {
-  product_code: string
-  product_name: string
-  quantity: number
-  costUnit: number
-  cost: number
-}
+  product_code: string;
+  product_name: string;
+  quantity: number;
+  costUnit: number;
+  cost: number;
+};
 
 export type CostResult = {
-  detail: CostRow[]
-  totalMaterialCost: number
-}
+  detail: CostRow[];
+  totalMaterialCost: number;
+};
 
-export function calculateCost(rows: ExcelSaleRow[]): CostResult {
+export function calculateCost(
+  rows: ExcelSaleRow[],
+  costMap: Record<string, number>
+): CostResult {
   let totalMaterialCost = 0;
 
   const detail: CostRow[] = rows.map((row) => {
     const quantity = Number(row.quantity ?? 0);
-    const costUnit = PRODUCT_COST[row.product_code] ?? 0;
+    const costUnit = costMap[row.product_code] ?? 0;
     const cost = quantity * costUnit;
 
     totalMaterialCost += cost;

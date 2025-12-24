@@ -14,10 +14,16 @@ const firebaseConfig = {
   storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET!,
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID!,
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID!,
-  measurementId: "G-NSYH31EWCC"
+  measurementId: "G-NSYH31EWCC",
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+
+let analytics;
+if (typeof window !== "undefined") {
+  // Only initialize analytics on client side
+  analytics = getAnalytics(app);
+}
+
 export const db = getFirestore(app);

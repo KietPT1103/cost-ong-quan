@@ -5,6 +5,7 @@ import {
   getDocs,
   setDoc,
   updateDoc,
+  deleteDoc,
   serverTimestamp,
 } from "firebase/firestore";
 
@@ -41,13 +42,23 @@ export async function upsertProductsFromExcel(
 }
 
 // UPDATE COST
-export async function updateProductCost(
-  productCode: string,
-  cost: number
-) {
+export async function updateProductCost(productCode: string, cost: number) {
   await updateDoc(doc(db, "products", productCode), {
     cost,
     has_cost: true,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+// DELETE PRODUCT
+export async function deleteProduct(productCode: string) {
+  await deleteDoc(doc(db, "products", productCode));
+}
+
+// ADD NEW PRODUCT
+export async function addProduct(product: Product) {
+  await setDoc(doc(db, "products", product.product_code), {
+    ...product,
     updatedAt: serverTimestamp(),
   });
 }

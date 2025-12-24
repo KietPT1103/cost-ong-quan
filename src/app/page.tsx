@@ -8,6 +8,9 @@ import ResultTable from "@/components/ResultTable";
 import Link from "next/link";
 import { Upload, FileSpreadsheet, Calculator, Package } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { fetchProductCosts, seedProductCosts } from "@/services/productService";
+import { saveReport } from "@/services/reportService";
+import { FileText, Save, BarChart3 } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -48,12 +51,62 @@ export default function HomePage() {
         quantity: Number(r[5] ?? 0),
       }));
 
-    const { detail } = calculateCost(mapped);
+    const costMap = await fetchProductCosts();
+    const { detail } = calculateCost(mapped, costMap);
     setRows(detail);
   }
 
   // Calculate values for display only
   const materialCost = rows.reduce((s, r) => s + r.cost, 0);
+
+  const handleSeed = async () => {
+    if (
+      confirm("Bạn có chắc muốn upload dữ liệu từ config lên Firebase không?")
+    ) {
+      await seedProductCosts();
+      alert("Đã upload dữ liệu cost lên Firebase thành công!");
+    }
+  };
+
+  const handleSaveReport = async () => {
+    if (!fileName || rows.length === 0) {
+      alert("Chưa có dữ liệu để lưu");
+      return;
+    }
+
+    if (!revenue) {
+      if (!confirm("Chưa nhập doanh thu. Bạn có muốn tiếp tục lưu?")) return;
+    }
+
+    try {
+      const materialCost = rows.reduce((s, r) => s + r.cost, 0);
+      const totalCost = materialCost + salary + electric + other;
+      const profit = revenue - totalCost;
+
+      await saveReport({
+        fileName,
+        revenue,
+        salary,
+        electric,
+        other,
+        totalMaterialCost: materialCost,
+        totalCost,
+        profit,
+        details: rows.map((r) => ({
+          product_code: r.product_code,
+          product_name: r.product_name,
+          quantity: r.quantity,
+          costUnit: r.costUnit,
+          cost: r.cost,
+        })),
+      });
+
+      alert("Đã lưu báo cáo thành công!");
+    } catch (error) {
+      console.error(error);
+      alert("Lỗi khi lưu báo cáo");
+    }
+  };
 
   return (
     <main className="min-h-screen bg-background p-6 md:p-12 font-sans text-slate-800">
@@ -70,6 +123,21 @@ export default function HomePage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            {/* <Button variant="ghost" onClick={handleSeed} size="sm">
+              Sync Data
+            </Button> */}
+            <Link href="/reports">
+              <Button variant="outline" className="gap-2">
+                <FileText className="w-4 h-4" />
+                Xem báo cáo
+              </Button>
+            </Link>
+            <Link href="/cash-flow">
+              <Button variant="outline" className="gap-2">
+                <BarChart3 className="w-4 h-4" />
+                Dòng tiền
+              </Button>
+            </Link>
             <Link href="/product">
               <Button variant="outline" className="gap-2">
                 <Package className="w-4 h-4" />
@@ -215,6 +283,17 @@ export default function HomePage() {
               electric={electric}
               other={other}
             />
+
+            {/* Actions */}
+            <div className="flex gap-2 justify-end">
+              <Button
+                onClick={handleSaveReport}
+                className="gap-2 bg-emerald-600 hover:bg-emerald-700"
+              >
+                <Save className="w-4 h-4" />
+                Lưu báo cáo
+              </Button>
+            </div>
           </div>
         </div>
       </div>
