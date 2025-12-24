@@ -1,4 +1,5 @@
-import ResultRow from "./ResultRow";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { cn } from "@/lib/utils";
 
 type ResultTableProps = {
   revenue: number;
@@ -19,62 +20,77 @@ export default function ResultTable({
   const profit = revenue - totalCost;
 
   const percent = (value: number) =>
-    revenue ? (value / revenue) * 100 : 0;
+    revenue ? ((value / revenue) * 100).toFixed(1) : "0";
+
+  const formatMoney = (value: number) =>
+    new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+    }).format(value);
+
+  const Row = ({
+    label,
+    value,
+    p,
+    bold,
+    highlight,
+  }: {
+    label: string;
+    value: number;
+    p: string;
+    bold?: boolean;
+    highlight?: boolean;
+  }) => (
+    <div
+      className={cn(
+        "flex justify-between items-center py-3 border-b last:border-0",
+        bold && "font-bold",
+        highlight && "text-primary text-lg"
+      )}
+    >
+      <span>{label}</span>
+      <div className="text-right">
+        <div className={cn("font-medium", highlight && "text-xl")}>
+          {formatMoney(value)}
+        </div>
+        <div className="text-xs text-muted-foreground">{p}% doanh thu</div>
+      </div>
+    </div>
+  );
 
   return (
-    <div className="bg-gray-100 p-6 rounded">
-      <table className="w-full border">
-        <thead className="bg-gray-200">
-          <tr>
-            <th className="border p-2 text-left">Khoản mục</th>
-            <th className="border p-2 text-right">Số tiền (VNĐ)</th>
-            <th className="border p-2 text-right">% Doanh thu</th>
-          </tr>
-        </thead>
-        <tbody>
-          <ResultRow label="Doanh thu" value={revenue} percent={100} />
-
-          <ResultRow
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle>Kết quả kinh doanh</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-1">
+          <Row label="Doanh thu" value={revenue} p="100" bold />
+          <div className="my-4 border-t" />
+          <Row
             label="Cost nguyên liệu"
             value={materialCost}
-            percent={percent(materialCost)}
+            p={percent(materialCost)}
           />
-
-          <ResultRow
-            label="Lương"
-            value={salary}
-            percent={percent(salary)}
-          />
-
-          <ResultRow
-            label="Điện nước"
-            value={electric}
-            percent={percent(electric)}
-          />
-
-          <ResultRow
-            label="Chi phí khác"
-            value={other}
-            percent={percent(other)}
-          />
-
-          <ResultRow
+          <Row label="Lương nhân viên" value={salary} p={percent(salary)} />
+          <Row label="Điện nước" value={electric} p={percent(electric)} />
+          <Row label="Chi phí khác" value={other} p={percent(other)} />
+          <div className="my-4 border-t" />
+          <Row
             label="Tổng chi phí"
             value={totalCost}
-            percent={percent(totalCost)}
+            p={percent(totalCost)}
             bold
           />
-
-          <ResultRow
-            label="Lợi nhuận"
+          <Row
+            label="Lợi nhuận ròng"
             value={profit}
-            percent={percent(profit)}
+            p={percent(profit)}
             bold
             highlight
           />
-        </tbody>
-      </table>
-    </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
-
