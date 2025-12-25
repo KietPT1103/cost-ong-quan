@@ -341,6 +341,78 @@ export default function CafePosPage() {
     } finally {
       setIsPaying(false);
     }
+    const receiptItems = receiptData.items
+      .map(
+        (item) => `
+          <tr>
+            <td style="padding:4px 0;">${item.name} (${item.quantity}x)</td>
+            <td style="text-align:right;padding:4px 0;">${formatCurrency(
+              item.price * item.quantity
+            )} đ</td>
+          </tr>
+        `
+      )
+      .join("");
+
+    const receiptHtml = `
+      <html>
+        <head>
+          <title>Bill - ${receiptData.table}</title>
+          <style>
+            @page { size: 80mm auto; margin: 4mm; }
+            body { font-family: Arial, sans-serif; width: 80mm; margin: 0 auto; padding: 0; }
+            h2, p { margin: 0; }
+            table { width: 100%; border-collapse: collapse; font-size: 12px; }
+            .total { font-weight: 700; font-size: 14px; }
+            hr { border: 0; border-top: 1px dashed #999; margin: 8px 0; }
+          </style>
+        </head>
+        <body>
+          <h2>Hoá đơn</h2>
+          <p>Bàn: <strong>${receiptData.table}</strong></p>
+          <p>Thời gian: ${receiptData.time}</p>
+          ${receiptData.note ? `<p>Ghi chú: ${receiptData.note}</p>` : ""}
+          <hr />
+          <table>
+            <tbody>
+              ${receiptItems}
+            </tbody>
+          </table>
+          <hr />
+          <table>
+            <tr class="total">
+              <td>Tổng cộng</td>
+              <td style="text-align:right;">${formatCurrency(receiptData.total)} đ</td>
+            </tr>
+          </table>
+          <p style="text-align:center; margin-top: 12px;">Cảm ơn Quý khách!</p>
+        </body>
+      </html>
+    `;
+
+    const iframe = document.createElement("iframe");
+    iframe.style.position = "fixed";
+    iframe.style.right = "0";
+    iframe.style.bottom = "0";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "0";
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow?.document;
+    if (doc) {
+      doc.open();
+      doc.write(receiptHtml);
+      doc.close();
+      iframe.onload = () => {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+        setTimeout(() => document.body.removeChild(iframe), 500);
+      };
+    } else {
+      document.body.removeChild(iframe);
+      alert("Không thể in, vui lòng kiểm tra trình duyệt.");
+    }
   };
 
   const handleSelectTable = (name: string) => {
@@ -903,3 +975,4 @@ export default function CafePosPage() {
     </>
   );
 }
+
