@@ -8,6 +8,10 @@ import {
   query,
   serverTimestamp,
   Timestamp,
+  where,
+  doc,
+  updateDoc,
+  deleteDoc,
 } from "firebase/firestore";
 
 export type BillItemInput = {
@@ -64,4 +68,60 @@ export async function getRecentBills(limitCount = 20) {
         ...(doc.data() as Omit<Bill, "id">),
       } as Bill)
   );
+}
+
+export async function getBills(options?: {
+  startDate?: Date;
+  endDate?: Date;
+  limitCount?: number;
+}) {
+  const { startDate, endDate, limitCount = 100 } = options || {};
+  const constraints = [orderBy("createdAt", "desc")];
+
+  if (startDate) {
+    constraints.push(where("createdAt", ">=", Timestamp.fromDate(startDate)));
+  }
+  if (endDate) {
+    constraints.push(where("createdAt", "<=", Timestamp.fromDate(endDate)));
+  }
+  if (limitCount) {
+    constraints.push(limit(limitCount));
+  }
+
+  const q = query(collection(db, BILLS_COLLECTION), ...constraints);
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(
+    (doc) =>
+      ({
+        id: doc.id,
+        ...(doc.data() as Omit<Bill, "id">),
+      } as Bill)
+  );
+}
+
+export async function updateBill(
+  id: string,
+  data: Partial<NewBill> & { createdAt?: Date }
+) {
+  const payload: Record<string, unknown> = {};
+
+  if (data.tableNumber !== undefined) payload.tableNumber = data.tableNumber;
+  if (data.total !== undefined) payload.total = data.total;
+  if (data.items !== undefined) payload.items = data.items;
+
+  if (data.note !== undefined) {
+    payload.note = data.note?.trim() || "";
+  }
+
+  if (data.createdAt) {
+    payload.createdAt = Timestamp.fromDate(data.createdAt);
+  }
+
+  if (Object.keys(payload).length === 0) return;
+
+  await updateDoc(doc(db, BILLS_COLLECTION, id), payload);
+}
+
+export async function deleteBill(id: string) {
+  await deleteDoc(doc(db, BILLS_COLLECTION, id));
 }

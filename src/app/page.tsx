@@ -10,7 +10,7 @@ import { Upload, FileSpreadsheet, Calculator, Package, Coffee } from "lucide-rea
 import { Button } from "@/components/ui/Button";
 import { fetchProductCosts, seedProductCosts } from "@/services/productService";
 import { saveReport } from "@/services/reportService";
-import { FileText, Save, BarChart3 } from "lucide-react";
+import { FileText, Save, BarChart3, ReceiptText } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -142,6 +142,12 @@ export default function HomePage() {
               <Button variant="outline" className="gap-2">
                 <Coffee className="w-4 h-4" />
                 Bán hàng cafe
+              </Button>
+            </Link>
+            <Link href="/bills">
+              <Button variant="outline" className="gap-2">
+                <ReceiptText className="w-4 h-4" />
+                Hoa don
               </Button>
             </Link>
             <Link href="/product">
@@ -306,3 +312,5 @@ export default function HomePage() {
     </main>
   );
 }
+
+
