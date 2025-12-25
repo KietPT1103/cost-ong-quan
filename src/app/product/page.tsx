@@ -58,7 +58,7 @@ export default function ProductsPage() {
     init();
   }, []);
 
-  // IMPORT EXCEL NGUYÊN LIỆU
+  // IMPORT EXCEL NGUYÊN LIỆU + GIÁ + CATEGORY
   async function handleImport(file: File) {
     const reader = new FileReader();
     reader.onload = async (e) => {
@@ -69,7 +69,7 @@ export default function ProductsPage() {
 
       // tìm header
       const headerIndex = rows.findIndex(
-        (r) => r?.includes("Mã hàng") && r?.includes("Tên hàng hóa")
+        (r) => r?.includes("Mã hàng") || r?.includes("MAœ hAÿng")
       );
 
       if (headerIndex === -1) {
@@ -78,17 +78,56 @@ export default function ProductsPage() {
       }
 
       const dataRows = rows.slice(headerIndex + 1);
+      const headerRow = rows[headerIndex] || [];
+      const codeIdx = headerRow.findIndex((c) =>
+        String(c || "").toLowerCase().includes("mã hàng")
+      );
+      const nameIdx = headerRow.findIndex((c) =>
+        String(c || "").toLowerCase().includes("tên hàng")
+      );
+      const categoryIdx = headerRow.findIndex((c) =>
+        String(c || "").toLowerCase().includes("nhóm hàng")
+      );
+      const priceIdx = headerRow.findIndex((c) =>
+        String(c || "").toLowerCase().includes("giá bán")
+      );
 
       const mapped = dataRows
-        .filter((r) => typeof r[0] === "string")
-        .map((r) => ({
-          product_code: String(r[0]),
-          product_name: String(r[1]),
-        }));
+        .filter((r) => {
+          const code = codeIdx >= 0 ? r[codeIdx] : r[0];
+          const name = nameIdx >= 0 ? r[nameIdx] : r[1];
+          return typeof code === "string" && typeof name === "string";
+        })
+        .map((r) => {
+          const code = codeIdx >= 0 ? r[codeIdx] : r[0];
+          const name = nameIdx >= 0 ? r[nameIdx] : r[1];
+          const categoryName = categoryIdx >= 0 ? r[categoryIdx] : "";
+          const rawPrice = priceIdx >= 0 ? r[priceIdx] : undefined;
+          const priceNum =
+            typeof rawPrice === "number"
+              ? rawPrice
+              : rawPrice
+              ? Number(String(rawPrice).replace(/[^0-9.-]/g, ""))
+              : null;
+
+          const normalizedCat =
+            typeof categoryName === "string" ? categoryName.trim() : "";
+          const matchedCategoryId =
+            categories.find(
+              (c) => c.name.toLowerCase() === normalizedCat.toLowerCase()
+            )?.id || normalizedCat;
+
+          return {
+            product_code: String(code).trim(),
+            product_name: String(name).trim(),
+            category: matchedCategoryId,
+            price: Number.isFinite(priceNum) ? Number(priceNum) : null,
+          };
+        });
 
       await upsertProductsFromExcel(mapped);
       await loadProducts();
-      alert("Import nguyên liệu thành công");
+      alert("Import nguyên liệu kèm giá bán & nhóm hàng thành công");
     };
 
     reader.readAsArrayBuffer(file);
@@ -165,7 +204,7 @@ export default function ProductsPage() {
           className="hidden"
           onChange={(e) => e.target.files && handleImport(e.target.files[0])}
         />
-        ⬆ Import danh sách nguyên liệu (Excel)
+        ⬆️ Import danh sách nguyên liệu (Excel)
       </label>
 
       <button

@@ -24,6 +24,7 @@ import { addTable, CafeTable, getTables } from "@/services/tableService";
 import { Category, getCategories } from "@/services/categoryService";
 
 const ALL_CATEGORY = "Tất cả";
+const ALL_CATEGORY_ID = "ALL";
 const TAKEAWAY_ID = "__takeaway";
 const TAKEAWAY_NAME = "Mang về";
 const TABLES_PER_PAGE = 20;
@@ -53,7 +54,7 @@ export default function CafePosPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [tableNumber, setTableNumber] = useState("");
   const [menuSearch, setMenuSearch] = useState("");
-  const [category, setCategory] = useState<string>(ALL_CATEGORY);
+  const [category, setCategory] = useState<string>(ALL_CATEGORY_ID);
   const [activeTab, setActiveTab] = useState<"tables" | "menu">("tables");
   const [note, setNote] = useState("");
   const [tableSearch, setTableSearch] = useState("");
@@ -91,11 +92,11 @@ export default function CafePosPage() {
 
   const categoryOptions = useMemo(() => {
     if (categories.length > 0) {
-      return [ALL_CATEGORY, ...categories.map((c) => c.name)];
+      return [{ id: ALL_CATEGORY_ID, name: ALL_CATEGORY }, ...categories.map((c) => ({ id: c.id, name: c.name }))];
     }
     const setCat = new Set<string>();
     products.forEach((p) => setCat.add(p.category || "Khác"));
-    return [ALL_CATEGORY, ...Array.from(setCat)];
+    return [{ id: ALL_CATEGORY_ID, name: ALL_CATEGORY }, ...Array.from(setCat).map((name) => ({ id: name, name }))];
   }, [categories, products]);
 
   const tableOptions = useMemo(
@@ -135,6 +136,23 @@ export default function CafePosPage() {
     return sortedTables.slice(start, start + TABLES_PER_PAGE);
   }, [sortedTables, tablePage]);
 
+  const getCategoryLabel = (cat?: string) => {
+    if (!cat) return "Khác";
+    const found = categories.find((c) => c.id === cat || c.name === cat);
+    return found?.name || cat;
+  };
+
+  const isCategoryMatch = (itemCategory: string, selected: string) => {
+    if (selected === ALL_CATEGORY_ID) return true;
+    if (itemCategory === selected) return true;
+    const itemCat = categories.find((c) => c.id === itemCategory || c.name === itemCategory);
+    const selectedCat = categories.find((c) => c.id === selected || c.name === selected);
+    if (itemCat && selectedCat && (itemCat.id === selectedCat.id || itemCat.name === selectedCat.name)) {
+      return true;
+    }
+    return false;
+  };
+
   const filteredMenu = useMemo(() => {
     const items: MenuItem[] = products.map((p) => ({
       id: p.product_code,
@@ -144,11 +162,11 @@ export default function CafePosPage() {
     }));
 
     return items.filter((item) => {
-      const matchCategory = category === ALL_CATEGORY || item.category === category;
+      const matchCategory = isCategoryMatch(item.category, category);
       const matchText = item.name.toLowerCase().includes(menuSearch.toLowerCase());
       return matchCategory && matchText;
     });
-  }, [category, products, menuSearch]);
+  }, [category, products, menuSearch, categories]);
 
   const cartItems = useMemo(() => Object.values(cart), [cart]);
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
@@ -183,7 +201,6 @@ export default function CafePosPage() {
       };
     });
   };
-
   const handlePay = async () => {
     if (!tableNumber) {
       alert("Vui lòng chọn số bàn gọi.");
@@ -646,26 +663,26 @@ export default function CafePosPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                <div className="flex flex-wrap items-center gap-2 pb-1">
                   {categoryOptions.map((c) => {
-                    const active = c === category;
+                    const active = c.id === category;
                     return (
                       <button
-                        key={c}
-                        onClick={() => setCategory(c)}
+                        key={c.id}
+                        onClick={() => setCategory(c.id)}
                         className={`whitespace-nowrap cursor-pointer rounded-full border px-4 py-2 text-sm font-semibold transition ${
                           active
                             ? "border-sky-500 bg-sky-50 text-sky-700 shadow-sm"
                             : "border-slate-200 bg-white text-slate-600 hover:border-sky-200 hover:text-sky-700"
                         }`}
                       >
-                        {c}
+                        {c.name}
                       </button>
                     );
                   })}
                 </div>
 
-                <div className="grid max-h-[60vh] gap-3 overflow-y-auto pb-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
+                <div className="grid max-h-110 gap-3 overflow-y-auto pb-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
                   {filteredMenu.map((item) => {
                     const inCart = cart[item.id]?.quantity ?? 0;
                     return (
@@ -676,7 +693,7 @@ export default function CafePosPage() {
                       >
                         <div className="flex items-center justify-between gap-2 text-xs text-slate-500">
                           <span className="font-semibold text-slate-600">
-                            {item.category}
+                            {getCategoryLabel(item.category)}
                           </span>
                           {inCart > 0 && (
                             <span className="rounded-full bg-emerald-50 px-2 text-[11px] font-semibold text-emerald-700">
@@ -742,13 +759,7 @@ export default function CafePosPage() {
                   <h2 className="text-lg font-semibold text-slate-900">
                     Đơn hiện tại
                   </h2>
-                  <p className="text-xs text-slate-500">
-                    {tableNumber ? `Bàn: ${tableNumber}` : "Chưa chọn bàn"}
-                  </p>
                 </div>
-                <span className="rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white">
-                  {totalPrice > 0 ? `${formatCurrency(totalPrice)} đ` : "Chưa có món"}
-                </span>
               </div>
 
               <div className="flex-1 max-h-[50vh] space-y-3 overflow-y-auto px-4 pb-4">

@@ -26,7 +26,12 @@ export async function getAllProducts(): Promise<Product[]> {
 
 // UPSERT FROM EXCEL (KHÔNG GHI ĐÈ COST)
 export async function upsertProductsFromExcel(
-  products: { product_code: string; product_name: string }[]
+  products: {
+    product_code: string;
+    product_name: string;
+    price?: number | null;
+    category?: string;
+  }[]
 ) {
   for (const p of products) {
     await setDoc(
@@ -35,7 +40,8 @@ export async function upsertProductsFromExcel(
         product_code: p.product_code,
         product_name: p.product_name,
         cost: null,
-        price: null,
+        price: typeof p.price === "number" ? p.price : null,
+        category: p.category || "",
         has_cost: false,
         updatedAt: serverTimestamp(),
       },
