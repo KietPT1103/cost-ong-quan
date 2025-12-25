@@ -13,14 +13,20 @@ export type ProductCost = {
   product_name: string;
   cost: number;
   unit?: string;
+  price?: number | null;
+  category?: string;
 };
 
 // Lưu / cập nhật cost
 export async function saveProductCost(data: ProductCost) {
-  await setDoc(doc(db, "products", data.product_code), {
-    ...data,
-    updatedAt: serverTimestamp(),
-  });
+  await setDoc(
+    doc(db, "products", data.product_code),
+    {
+      ...data,
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true }
+  );
 }
 
 // Lấy cost theo mã

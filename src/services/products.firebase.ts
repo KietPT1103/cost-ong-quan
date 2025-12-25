@@ -13,6 +13,8 @@ export type Product = {
   product_code: string;
   product_name: string;
   cost: number | null;
+  price: number | null;
+  category?: string;
   has_cost: boolean;
 };
 
@@ -33,6 +35,7 @@ export async function upsertProductsFromExcel(
         product_code: p.product_code,
         product_name: p.product_name,
         cost: null,
+        price: null,
         has_cost: false,
         updatedAt: serverTimestamp(),
       },
@@ -41,11 +44,15 @@ export async function upsertProductsFromExcel(
   }
 }
 
-// UPDATE COST
-export async function updateProductCost(productCode: string, cost: number) {
+// UPDATE COST / PRICE / CATEGORY
+export async function updateProductCost(
+  productCode: string,
+  data: { cost?: number | null; price?: number | null; category?: string }
+) {
   await updateDoc(doc(db, "products", productCode), {
-    cost,
-    has_cost: true,
+    ...("cost" in data ? { cost: data.cost, has_cost: true } : {}),
+    ...("price" in data ? { price: data.price ?? null } : {}),
+    ...("category" in data ? { category: data.category ?? "" } : {}),
     updatedAt: serverTimestamp(),
   });
 }
@@ -59,6 +66,10 @@ export async function deleteProduct(productCode: string) {
 export async function addProduct(product: Product) {
   await setDoc(doc(db, "products", product.product_code), {
     ...product,
+    cost: product.cost ?? null,
+    price: product.price ?? null,
+    category: product.category ?? "",
+    has_cost: product.has_cost ?? Boolean(product.cost),
     updatedAt: serverTimestamp(),
   });
 }

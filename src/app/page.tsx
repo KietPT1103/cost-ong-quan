@@ -6,7 +6,7 @@ import { calculateCost, SaleRow } from "@/services/cost";
 import InputMoney from "@/components/InputMoney";
 import ResultTable from "@/components/ResultTable";
 import Link from "next/link";
-import { Upload, FileSpreadsheet, Calculator, Package } from "lucide-react";
+import { Upload, FileSpreadsheet, Calculator, Package, Coffee } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { fetchProductCosts, seedProductCosts } from "@/services/productService";
 import { saveReport } from "@/services/reportService";
@@ -136,6 +136,12 @@ export default function HomePage() {
               <Button variant="outline" className="gap-2">
                 <BarChart3 className="w-4 h-4" />
                 Dòng tiền
+              </Button>
+            </Link>
+            <Link href="/pos">
+              <Button variant="outline" className="gap-2">
+                <Coffee className="w-4 h-4" />
+                Bán hàng cafe
               </Button>
             </Link>
             <Link href="/product">

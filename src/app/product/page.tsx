@@ -9,21 +9,36 @@ import {
   deleteProduct,
   Product,
 } from "@/services/products.firebase";
+import { addCategory, Category, getCategories } from "@/services/categoryService";
 import * as XLSX from "xlsx";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+
+type NewProductState = {
+  code: string;
+  name: string;
+  cost: number;
+  price: number;
+  category: string;
+};
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [editing, setEditing] = useState<Product | null>(null);
   const [costInput, setCostInput] = useState<number>(0);
+  const [priceInput, setPriceInput] = useState<number>(0);
+  const [categoryInput, setCategoryInput] = useState<string>("");
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [newCategoryName, setNewCategoryName] = useState("");
 
   // Add Product State
   const [showAddModal, setShowAddModal] = useState(false);
-  const [newProduct, setNewProduct] = useState({
+  const [newProduct, setNewProduct] = useState<NewProductState>({
     code: "",
     name: "",
     cost: 0,
+    price: 0,
+    category: "",
   });
 
   async function loadProducts() {
@@ -31,12 +46,15 @@ export default function ProductsPage() {
     setProducts(data);
   }
 
+  async function loadCategories() {
+    const data = await getCategories();
+    setCategories(data);
+  }
+
   useEffect(() => {
     async function init() {
-      const data = await getAllProducts();
-      setProducts(data);
+      await Promise.all([loadProducts(), loadCategories()]);
     }
-
     init();
   }, []);
 
@@ -76,10 +94,14 @@ export default function ProductsPage() {
     reader.readAsArrayBuffer(file);
   }
 
-  // SAVE COST
+  // SAVE COST & PRICE
   async function saveCost() {
     if (!editing) return;
-    await updateProductCost(editing.product_code, costInput);
+    await updateProductCost(editing.product_code, {
+      cost: costInput,
+      price: priceInput,
+      category: categoryInput,
+    });
     setEditing(null);
     await loadProducts();
   }
@@ -96,10 +118,12 @@ export default function ProductsPage() {
         product_code: newProduct.code,
         product_name: newProduct.name,
         cost: newProduct.cost,
+        price: newProduct.price,
+        category: newProduct.category,
         has_cost: true,
       });
       setShowAddModal(false);
-      setNewProduct({ code: "", name: "", cost: 0 });
+      setNewProduct({ code: "", name: "", cost: 0, price: 0, category: "" });
       await loadProducts();
       alert("Thêm sản phẩm thành công");
     } catch (error) {
@@ -110,7 +134,7 @@ export default function ProductsPage() {
 
   // DELETE PRODUCT
   async function handleDelete(code: string) {
-    if (!confirm(`Bạn có chắc muốn xóa sản phẩm ${code}?`)) return;
+    if (!confirm(`Bạn chắc chắn muốn xóa sản phẩm ${code}?`)) return;
     try {
       await deleteProduct(code);
       await loadProducts();
@@ -141,7 +165,7 @@ export default function ProductsPage() {
           className="hidden"
           onChange={(e) => e.target.files && handleImport(e.target.files[0])}
         />
-        📄 Import danh sách nguyên liệu (Excel)
+        ⬆ Import danh sách nguyên liệu (Excel)
       </label>
 
       <button
@@ -157,10 +181,10 @@ export default function ProductsPage() {
           <thead className="bg-gray-50 text-gray-600">
             <tr>
               <th className="px-4 py-3 text-left font-medium">Mã</th>
-              <th className="px-4 py-3 text-left font-medium">
-                Tên nguyên liệu
-              </th>
+              <th className="px-4 py-3 text-left font-medium">Tên sản phẩm</th>
               <th className="px-4 py-3 text-right font-medium">Cost</th>
+              <th className="px-4 py-3 text-right font-medium">Giá bán</th>
+              <th className="px-4 py-3 text-left font-medium">Phân loại</th>
               <th className="px-4 py-3 text-center font-medium">Trạng thái</th>
               <th className="px-4 py-3 text-center font-medium">Hành động</th>
             </tr>
@@ -179,8 +203,35 @@ export default function ProductsPage() {
                       {p.cost.toLocaleString()}đ
                     </span>
                   ) : (
-                    <span className="italic text-gray-400">—</span>
+                    <span className="italic text-gray-400">Chưa có</span>
                   )}
+                </td>
+
+                <td className="px-4 py-3 text-right">
+                  {p.price ? (
+                    <span className="font-medium">
+                      {p.price.toLocaleString()}đ
+                    </span>
+                  ) : (
+                    <span className="italic text-gray-400">Chưa có</span>
+                  )}
+                </td>
+
+                <td className="px-4 py-3">
+                  {(() => {
+                    const label =
+                      categories.find(
+                        (c) => c.id === p.category || c.name === p.category
+                      )?.name || p.category;
+                    if (!label) {
+                      return (
+                        <span className="italic text-gray-400">
+                          Chưa phân loại
+                        </span>
+                      );
+                    }
+                    return label;
+                  })()}
                 </td>
 
                 <td className="px-4 py-3 text-center">
@@ -201,6 +252,8 @@ export default function ProductsPage() {
                       onClick={() => {
                         setEditing(p);
                         setCostInput(p.cost ?? 0);
+                        setPriceInput(p.price ?? 0);
+                        setCategoryInput(p.category ?? "");
                       }}
                       className="rounded-md border border-blue-600 px-3 py-1 text-sm font-medium text-blue-600 hover:bg-blue-50 transition"
                     >
@@ -220,13 +273,13 @@ export default function ProductsPage() {
         </table>
       </div>
 
-      {/* MODAL */}
+      {/* EDIT MODAL */}
       {editing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="w-full max-w-md rounded-xl bg-white shadow-lg animate-in fade-in zoom-in">
             {/* HEADER */}
             <div className="border-b px-6 py-4">
-              <h2 className="text-lg font-semibold">Chỉnh cost nguyên liệu</h2>
+              <h2 className="text-lg font-semibold">Chỉnh giá nguyên liệu</h2>
               <p className="text-sm text-gray-500">
                 {editing.product_name} ({editing.product_code})
               </p>
@@ -245,6 +298,57 @@ export default function ProductsPage() {
                   className="mt-1 w-full rounded-md border px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                   placeholder="Nhập cost"
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Giá bán
+                </label>
+                <input
+                  type="number"
+                  value={priceInput}
+                  onChange={(e) => setPriceInput(Number(e.target.value))}
+                  className="mt-1 w-full rounded-md border px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  placeholder="Nhập giá bán"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Phân loại
+                </label>
+                <select
+                  value={categoryInput}
+                  onChange={(e) => setCategoryInput(e.target.value)}
+                  className="mt-1 w-full rounded-md border px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white"
+                >
+                  <option value="">-- Chọn loại sản phẩm --</option>
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.name}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  <input
+                    type="text"
+                    value={newCategoryName}
+                    onChange={(e) => setNewCategoryName(e.target.value)}
+                    className="rounded-md border px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    placeholder="Loại mới"
+                  />
+                  <button
+                    onClick={async () => {
+                      const id = await addCategory(newCategoryName);
+                      if (id) {
+                        await loadCategories();
+                        setCategoryInput(newCategoryName);
+                        setNewCategoryName("");
+                      }
+                    }}
+                    className="rounded-md bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+                  >
+                    Lưu loại mới
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -306,22 +410,85 @@ export default function ProductsPage() {
                   placeholder="VD: Cà phê sữa"
                 />
               </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Cost / đơn vị
+                  </label>
+                  <input
+                    type="number"
+                    value={newProduct.cost}
+                    onChange={(e) =>
+                      setNewProduct({
+                        ...newProduct,
+                        cost: Number(e.target.value),
+                      })
+                    }
+                    className="mt-1 w-full rounded-md border px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Giá bán
+                  </label>
+                  <input
+                    type="number"
+                    value={newProduct.price}
+                    onChange={(e) =>
+                      setNewProduct({
+                        ...newProduct,
+                        price: Number(e.target.value),
+                      })
+                    }
+                    className="mt-1 w-full rounded-md border px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    placeholder="0"
+                  />
+                </div>
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">
-                  Cost / đơn vị
+                  Phân loại
                 </label>
-                <input
-                  type="number"
-                  value={newProduct.cost}
+                <select
+                  value={newProduct.category}
                   onChange={(e) =>
-                    setNewProduct({
-                      ...newProduct,
-                      cost: Number(e.target.value),
-                    })
+                    setNewProduct({ ...newProduct, category: e.target.value })
                   }
-                  className="mt-1 w-full rounded-md border px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                  placeholder="0"
-                />
+                  className="mt-1 w-full rounded-md border px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white"
+                >
+                  <option value="">-- Chọn loại sản phẩm --</option>
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.name}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  <input
+                    type="text"
+                    value={newCategoryName}
+                    onChange={(e) => setNewCategoryName(e.target.value)}
+                    className="rounded-md border px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    placeholder="Loại mới"
+                  />
+                  <button
+                    onClick={async () => {
+                      const id = await addCategory(newCategoryName);
+                      if (id) {
+                        await loadCategories();
+                        setNewProduct({
+                          ...newProduct,
+                          category: newCategoryName,
+                        });
+                        setNewCategoryName("");
+                      }
+                    }}
+                    className="rounded-md bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+                  >
+                    Lưu loại mới
+                  </button>
+                </div>
               </div>
             </div>
 
