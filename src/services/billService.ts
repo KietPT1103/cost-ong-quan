@@ -12,6 +12,7 @@ import {
   doc,
   updateDoc,
   deleteDoc,
+  QueryConstraint,
 } from "firebase/firestore";
 
 export type BillItemInput = {
@@ -76,7 +77,7 @@ export async function getBills(options?: {
   limitCount?: number;
 }) {
   const { startDate, endDate, limitCount = 100 } = options || {};
-  const constraints = [orderBy("createdAt", "desc")];
+  const constraints: QueryConstraint[] = [orderBy("createdAt", "desc")];
 
   if (startDate) {
     constraints.push(where("createdAt", ">=", Timestamp.fromDate(startDate)));
