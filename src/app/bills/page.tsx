@@ -20,6 +20,9 @@ import {
 
 import RoleGuard from "@/components/RoleGuard";
 
+import { useAuth } from "@/context/AuthContext";
+import { useStore } from "@/context/StoreContext";
+
 type EditFormState = {
   tableNumber: string;
   note: string;
@@ -41,6 +44,7 @@ const getTimestampDate = (bill: Bill) =>
   bill.createdAt?.seconds ? new Date(bill.createdAt.seconds * 1000) : undefined;
 
 export default function BillsPage() {
+  const { storeId } = useStore();
   const todayInput = formatDateInput(new Date());
 
   const [bills, setBills] = useState<Bill[]>([]);
@@ -67,7 +71,7 @@ export default function BillsPage() {
       if (start) start.setHours(0, 0, 0, 0);
       if (end) end.setHours(23, 59, 59, 999);
 
-      const data = await getBills({ startDate: start, endDate: end });
+      const data = await getBills({ startDate: start, endDate: end, storeId });
       setBills(data);
     } catch (error) {
       console.error(error);
@@ -80,7 +84,7 @@ export default function BillsPage() {
   useEffect(() => {
     loadBills();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [startDate, endDate]);
+  }, [startDate, endDate, storeId]);
 
   const filteredBills = useMemo(() => {
     const keyword = search.trim().toLowerCase();

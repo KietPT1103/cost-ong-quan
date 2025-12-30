@@ -11,7 +11,6 @@ import {
   where,
   Timestamp,
   limit,
-  startAfter,
 } from "firebase/firestore";
 
 export type Report = {
@@ -26,6 +25,7 @@ export type Report = {
   totalCost: number;
   profit: number;
   details: CostRow[];
+  storeId?: string;
 };
 
 export type NewReport = Omit<Report, "id" | "createdAt">;
@@ -35,6 +35,7 @@ const REPORTS_COLLECTION = "reports";
 export async function saveReport(data: NewReport) {
   const docRef = await addDoc(collection(db, REPORTS_COLLECTION), {
     ...data,
+    storeId: data.storeId || "cafe",
     createdAt: Timestamp.now(),
   });
   return docRef.id;
@@ -43,10 +44,12 @@ export async function saveReport(data: NewReport) {
 export async function getReports(
   limitCount = 20,
   startDate?: Date,
-  endDate?: Date
+  endDate?: Date,
+  storeId = "cafe"
 ) {
   let q = query(
     collection(db, REPORTS_COLLECTION),
+    where("storeId", "==", storeId),
     orderBy("createdAt", "desc"),
     limit(limitCount)
   );
@@ -54,6 +57,7 @@ export async function getReports(
   if (startDate && endDate) {
     q = query(
       collection(db, REPORTS_COLLECTION),
+      where("storeId", "==", storeId),
       where("createdAt", ">=", Timestamp.fromDate(startDate)),
       where("createdAt", "<=", Timestamp.fromDate(endDate)),
       orderBy("createdAt", "desc"),

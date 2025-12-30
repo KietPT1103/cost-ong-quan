@@ -5,6 +5,7 @@ import {
   getDocs,
   orderBy,
   query,
+  where,
   serverTimestamp,
 } from "firebase/firestore";
 
@@ -13,12 +14,17 @@ export type Category = {
   name: string;
   description?: string;
   order?: number;
+  storeId?: string;
 };
 
 const COLLECTION = "categories";
 
-export async function getCategories(): Promise<Category[]> {
-  const q = query(collection(db, COLLECTION), orderBy("name", "asc"));
+export async function getCategories(storeId = "cafe"): Promise<Category[]> {
+  const q = query(
+    collection(db, COLLECTION),
+    where("storeId", "==", storeId),
+    orderBy("name", "asc")
+  );
   const snap = await getDocs(q);
   return snap.docs.map(
     (doc) =>
@@ -31,12 +37,17 @@ export async function getCategories(): Promise<Category[]> {
   );
 }
 
-export async function addCategory(name: string, description?: string) {
+export async function addCategory(
+  name: string,
+  description?: string,
+  storeId = "cafe"
+) {
   if (!name.trim()) return null;
   const docRef = await addDoc(collection(db, COLLECTION), {
     name: name.trim(),
     description: description?.trim() || "",
     order: Date.now(),
+    storeId: storeId,
     createdAt: serverTimestamp(),
   });
   return docRef.id;

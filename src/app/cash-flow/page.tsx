@@ -8,9 +8,13 @@ import { ArrowLeft, BarChart3, Printer, X, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 
+import { useAuth } from "@/context/AuthContext";
+import { useStore } from "@/context/StoreContext";
+
 import RoleGuard from "@/components/RoleGuard";
 
 export default function CashFlowPage() {
+  const { storeId } = useStore();
   const [year, setYear] = useState(new Date().getFullYear());
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,7 +62,7 @@ export default function CashFlowPage() {
         const startDate = new Date(year, 0, 1); // Jan 1st
         const endDate = new Date(year, 11, 31, 23, 59, 59); // Dec 31st
         // Fetch up to 1000 reports for the year to ensure we cover enough data for stats
-        const data = await getReports(1000, startDate, endDate);
+        const data = await getReports(1000, startDate, endDate, storeId);
         setReports(data);
       } catch (error) {
         console.error(error);
@@ -67,7 +71,7 @@ export default function CashFlowPage() {
       }
     }
     load();
-  }, [year]);
+  }, [year, storeId]);
 
   // Aggregation Logic
   const stats = useMemo(() => {

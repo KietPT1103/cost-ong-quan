@@ -28,6 +28,7 @@ export type NewBill = {
   note?: string;
   total: number;
   items: BillItemInput[];
+  storeId?: string;
 };
 
 export type Bill = NewBill & {
@@ -42,6 +43,7 @@ export async function saveBill(data: NewBill) {
     tableNumber: data.tableNumber,
     total: data.total,
     items: data.items,
+    storeId: data.storeId || "cafe",
     createdAt: serverTimestamp(),
   };
 
@@ -54,9 +56,10 @@ export async function saveBill(data: NewBill) {
   return docRef.id;
 }
 
-export async function getRecentBills(limitCount = 20) {
+export async function getRecentBills(storeId = "cafe", limitCount = 20) {
   const q = query(
     collection(db, BILLS_COLLECTION),
+    where("storeId", "==", storeId),
     orderBy("createdAt", "desc"),
     limit(limitCount)
   );
@@ -75,9 +78,18 @@ export async function getBills(options?: {
   startDate?: Date;
   endDate?: Date;
   limitCount?: number;
+  storeId?: string;
 }) {
-  const { startDate, endDate, limitCount = 100 } = options || {};
-  const constraints: QueryConstraint[] = [orderBy("createdAt", "desc")];
+  const {
+    startDate,
+    endDate,
+    limitCount = 100,
+    storeId = "cafe",
+  } = options || {};
+  const constraints: QueryConstraint[] = [
+    where("storeId", "==", storeId),
+    orderBy("createdAt", "desc"),
+  ];
 
   if (startDate) {
     constraints.push(where("createdAt", ">=", Timestamp.fromDate(startDate)));
@@ -109,6 +121,7 @@ export async function updateBill(
   if (data.tableNumber !== undefined) payload.tableNumber = data.tableNumber;
   if (data.total !== undefined) payload.total = data.total;
   if (data.items !== undefined) payload.items = data.items;
+  if (data.storeId !== undefined) payload.storeId = data.storeId;
 
   if (data.note !== undefined) {
     payload.note = data.note?.trim() || "";

@@ -18,6 +18,7 @@ import * as XLSX from "xlsx";
 import Link from "next/link";
 import { ArrowLeft, Search } from "lucide-react";
 import RoleGuard from "@/components/RoleGuard";
+import { useStore } from "@/context/StoreContext";
 
 type NewProductState = {
   code: string;
@@ -78,8 +79,10 @@ export default function ProductsPage() {
     category: "",
   });
 
+  const { storeId } = useStore();
+
   async function loadProducts() {
-    const data = await getAllProducts();
+    const data = await getAllProducts(storeId);
     setProducts(data);
   }
 
@@ -93,7 +96,8 @@ export default function ProductsPage() {
       await Promise.all([loadProducts(), loadCategories()]);
     }
     init();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storeId]); // Reload when store changes
 
   // IMPORT EXCEL NGUYÊN LIỆU + GIÁ + CATEGORY
   async function handleImport(file: File) {
@@ -170,7 +174,7 @@ export default function ProductsPage() {
           };
         });
 
-      await upsertProductsFromExcel(mapped);
+      await upsertProductsFromExcel(mapped, storeId);
       await loadProducts();
       alert("Import nguyên liệu kèm giá bán & nhóm hàng thành công");
     };
@@ -205,6 +209,7 @@ export default function ProductsPage() {
         price: newProduct.price,
         category: newProduct.category,
         has_cost: true,
+        storeId,
       });
       setShowAddModal(false);
       setNewProduct({ code: "", name: "", cost: 0, price: 0, category: "" });

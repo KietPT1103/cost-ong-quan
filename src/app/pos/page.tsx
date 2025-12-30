@@ -25,6 +25,7 @@ import { addTable, CafeTable, getTables } from "@/services/tableService";
 import { Category, getCategories } from "@/services/categoryService";
 import RoleGuard from "@/components/RoleGuard";
 import { useAuth } from "@/context/AuthContext";
+import { useStore } from "@/context/StoreContext";
 
 const ALL_CATEGORY = "Tất cả";
 const ALL_CATEGORY_ID = "ALL";
@@ -53,6 +54,7 @@ type ReceiptData = {
 
 export default function CafePosPage() {
   const { role, logout } = useAuth();
+  const { storeId } = useStore();
   const [products, setProducts] = useState<Product[]>([]);
   const [tables, setTables] = useState<CafeTable[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -75,11 +77,12 @@ export default function CafePosPage() {
 
   useEffect(() => {
     async function loadData() {
+      if (!storeId) return;
       try {
         const [productList, tableList, categoryList] = await Promise.all([
-          getAllProducts(),
-          getTables(),
-          getCategories(),
+          getAllProducts(storeId),
+          getTables(storeId),
+          getCategories(storeId),
         ]);
         setProducts(productList);
         setTables(tableList);
@@ -92,7 +95,7 @@ export default function CafePosPage() {
       }
     }
     loadData();
-  }, []);
+  }, [storeId]);
 
   const categoryOptions = useMemo(() => {
     if (categories.length > 0) {
@@ -271,6 +274,7 @@ export default function CafePosPage() {
         tableNumber: receiptData.table,
         note: receiptData.note?.trim() || undefined,
         total: receiptData.total,
+        storeId,
         items: receiptData.items.map((item) => ({
           menuId: item.id,
           name: item.name,
@@ -381,7 +385,7 @@ export default function CafePosPage() {
       return;
     }
     try {
-      const id = await addTable(newTableName, newTableArea);
+      const id = await addTable(newTableName, newTableArea, storeId);
       if (id) {
         const refreshed = await getTables();
         setTables(refreshed);
@@ -417,8 +421,8 @@ export default function CafePosPage() {
 
     setIsSeedingTables(true);
     try {
-      await Promise.all(missing.map((name) => addTable(name, "")));
-      const refreshed = await getTables();
+      await Promise.all(missing.map((name) => addTable(name, "", storeId)));
+      const refreshed = await getTables(storeId);
       setTables(refreshed);
       alert(`Đã thêm ${missing.length} bàn.`);
     } catch (error) {

@@ -16,8 +16,15 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { fetchProductCosts, seedProductCosts } from "@/services/productService";
+import { migrateOldProducts } from "@/services/products.firebase";
 import { saveReport } from "@/services/reportService";
-import { FileText, Save, BarChart3, ReceiptText } from "lucide-react";
+import {
+  FileText,
+  Save,
+  BarChart3,
+  ReceiptText,
+  RefreshCw,
+} from "lucide-react";
 import {
   Card,
   CardContent,
@@ -27,9 +34,11 @@ import {
 } from "@/components/ui/Card";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
+import { useStore } from "@/context/StoreContext";
 
 export default function HomePage() {
   const { user, role, loading, logout } = useAuth();
+  const { storeId, storeName, setStoreId } = useStore();
   const router = useRouter();
   const [rows, setRows] = useState<SaleRow[]>([]);
   const [salary, setSalary] = useState(0);
@@ -80,7 +89,7 @@ export default function HomePage() {
         quantity: Number(r[5] ?? 0),
       }));
 
-    const costMap = await fetchProductCosts();
+    const costMap = await fetchProductCosts(storeId);
     const { detail } = calculateCost(mapped, costMap);
     setRows(detail);
   }
@@ -121,6 +130,7 @@ export default function HomePage() {
         totalMaterialCost: materialCost,
         totalCost,
         profit,
+        storeId,
         details: rows.map((r) => ({
           product_code: r.product_code,
           product_name: r.product_name,
@@ -139,50 +149,68 @@ export default function HomePage() {
 
   return (
     <main className="min-h-screen bg-background p-6 md:p-12 font-sans text-slate-800">
-      <div className="max-w-6xl mx-auto space-y-8">
+      <div className="max-w-7xl mx-auto space-y-8">
         {/* Header Section */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-primary flex items-center gap-2">
-              <Calculator className="w-8 h-8" />
-              Cost Calculator
+            <h1 className="text-3xl font-bold tracking-tight text-slate-900 flex items-center gap-3">
+              <div className="p-2 bg-primary/10 rounded-lg text-primary">
+                <Calculator className="w-8 h-8" />
+              </div>
+              Admin Dashboard
             </h1>
-            <p className="text-muted-foreground mt-1">
-              Tính toán chi phí và lợi nhuận tự động từ file Excel bán hàng.
+            <p className="flex items-center gap-2 text-slate-500 mt-2 text-sm font-medium">
+              Bạn đang quản lý:
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 border border-emerald-200">
+                {storeName}
+              </span>
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            {/* <Button variant="ghost" onClick={handleSeed} size="sm">
-              Sync Data
-            </Button> */}
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Link href="/pos">
+              <Button className="gap-2 bg-sky-600 hover:bg-sky-700 text-white border-none shadow-sm hover:shadow-md transition-all">
+                <Coffee className="w-4 h-4" />
+                Bán hàng
+              </Button>
+            </Link>
+
+            <div className="w-px h-8 bg-slate-200 mx-2 hidden sm:block"></div>
+
             <Link href="/reports">
-              <Button variant="outline" className="gap-2">
-                <FileText className="w-4 h-4" />
-                Xem báo cáo
+              <Button
+                variant="outline"
+                className="gap-2 hover:bg-slate-50 border-slate-200 text-slate-700"
+              >
+                <FileText className="w-4 h-4 text-emerald-600" />
+                Báo cáo
               </Button>
             </Link>
             <Link href="/cash-flow">
-              <Button variant="outline" className="gap-2">
-                <BarChart3 className="w-4 h-4" />
+              <Button
+                variant="outline"
+                className="gap-2 hover:bg-slate-50 border-slate-200 text-slate-700"
+              >
+                <BarChart3 className="w-4 h-4 text-purple-600" />
                 Dòng tiền
               </Button>
             </Link>
-            <Link href="/pos">
-              <Button variant="outline" className="gap-2">
-                <Coffee className="w-4 h-4" />
-                Bán hàng cafe
-              </Button>
-            </Link>
             <Link href="/bills">
-              <Button variant="outline" className="gap-2">
-                <ReceiptText className="w-4 h-4" />
-                Hoa don
+              <Button
+                variant="outline"
+                className="gap-2 hover:bg-slate-50 border-slate-200 text-slate-700"
+              >
+                <ReceiptText className="w-4 h-4 text-orange-600" />
+                Hóa đơn
               </Button>
             </Link>
             <Link href="/product">
-              <Button variant="outline" className="gap-2">
-                <Package className="w-4 h-4" />
-                Quản lý sản phẩm
+              <Button
+                variant="outline"
+                className="gap-2 hover:bg-slate-50 border-slate-200 text-slate-700"
+              >
+                <Package className="w-4 h-4 text-blue-600" />
+                Sản phẩm
               </Button>
             </Link>
             <Button

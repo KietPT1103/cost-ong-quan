@@ -10,7 +10,11 @@ import { Input } from "@/components/ui/Input";
 
 import RoleGuard from "@/components/RoleGuard";
 
+import { useAuth } from "@/context/AuthContext";
+import { useStore } from "@/context/StoreContext";
+
 export default function ReportsPage() {
+  const { storeId } = useStore();
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -24,7 +28,7 @@ export default function ReportsPage() {
       const end = endDate ? new Date(endDate) : undefined;
       if (end) end.setHours(23, 59, 59, 999);
 
-      const data = await getReports(50, start, end);
+      const data = await getReports(50, start, end, storeId);
       setReports(data);
     } catch (error) {
       console.error(error);
@@ -36,7 +40,7 @@ export default function ReportsPage() {
 
   useEffect(() => {
     loadData();
-  }, [startDate, endDate]);
+  }, [startDate, endDate, storeId]);
 
   const filteredReports = reports.filter((r) =>
     r.fileName.toLowerCase().includes(search.toLowerCase())

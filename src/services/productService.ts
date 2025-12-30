@@ -5,24 +5,27 @@ import {
   getDocs,
   writeBatch,
   serverTimestamp,
+  query,
+  where,
 } from "firebase/firestore";
 import { PRODUCT_COST } from "@/config/productCost";
 
 export type ProductCostValues = Record<string, number>;
 
+// ...
+
 /**
- * Fetches all product costs from Firebase and returns a map of product_code -> cost
+ * Fetches product costs from Firebase for a specific store and returns a map of product_code -> cost
  */
-export async function fetchProductCosts(): Promise<ProductCostValues> {
-  const snapshot = await getDocs(collection(db, "products"));
+export async function fetchProductCosts(
+  storeId = "cafe"
+): Promise<ProductCostValues> {
+  const q = query(collection(db, "products"), where("storeId", "==", storeId));
+  const snapshot = await getDocs(q);
   const costMap: ProductCostValues = {};
 
   snapshot.forEach((doc) => {
     const data = doc.data();
-    // Assuming the document has a 'cost' field and the ID is the product_code
-    // OR the document has a 'product_code' field.
-    // Based on productCost.firebase.ts, it uses doc(db, "products", data.product_code)
-    // so doc.id should be product_code.
     if (typeof data.cost === "number") {
       costMap[doc.id] = data.cost;
     }

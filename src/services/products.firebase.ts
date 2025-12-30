@@ -7,6 +7,8 @@ import {
   updateDoc,
   deleteDoc,
   serverTimestamp,
+  query,
+  where,
 } from "firebase/firestore";
 
 export type Product = {
@@ -16,11 +18,13 @@ export type Product = {
   price: number | null;
   category?: string;
   has_cost: boolean;
+  storeId?: string;
 };
 
 // GET ALL
-export async function getAllProducts(): Promise<Product[]> {
-  const snap = await getDocs(collection(db, "products"));
+export async function getAllProducts(storeId = "cafe"): Promise<Product[]> {
+  const q = query(collection(db, "products"), where("storeId", "==", storeId));
+  const snap = await getDocs(q);
   return snap.docs.map((d) => d.data() as Product);
 }
 
@@ -31,7 +35,8 @@ export async function upsertProductsFromExcel(
     product_name: string;
     price?: number | null;
     category?: string;
-  }[]
+  }[],
+  storeId: string
 ) {
   for (const p of products) {
     await setDoc(
@@ -43,6 +48,7 @@ export async function upsertProductsFromExcel(
         price: typeof p.price === "number" ? p.price : null,
         category: p.category || "",
         has_cost: false,
+        storeId,
         updatedAt: serverTimestamp(),
       },
       { merge: true }
@@ -76,6 +82,24 @@ export async function addProduct(product: Product) {
     price: product.price ?? null,
     category: product.category ?? "",
     has_cost: product.has_cost ?? Boolean(product.cost),
+    storeId: product.storeId || "cafe",
     updatedAt: serverTimestamp(),
   });
+}
+// MIGRATE OLD PRODUCTS (Temporary)
+export async function migrateOldProducts(targetStoreId = "cafe") {
+  const q = query(collection(db, "products"));
+  const snap = await getDocs(q);
+  let count = 0;
+
+  for (const d of snap.docs) {
+    const data = d.data() as Product;
+    if (!data.storeId) {
+      await updateDoc(doc(db, "products", d.id), {
+        storeId: targetStoreId,
+      });
+      count++;
+    }
+  }
+  return count;
 }
