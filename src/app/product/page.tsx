@@ -17,6 +17,7 @@ import {
 import * as XLSX from "xlsx";
 import Link from "next/link";
 import { ArrowLeft, Search } from "lucide-react";
+import RoleGuard from "@/components/RoleGuard";
 
 type NewProductState = {
   code: string;
@@ -228,318 +229,199 @@ export default function ProductsPage() {
   }
 
   return (
-    <main className="p-8 max-w-6xl mx-auto space-y-6">
-      <div className="flex items-center gap-4">
-        <Link
-          href="/"
-          className="p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-600"
-          title="Trở về trang chủ"
-        >
-          <ArrowLeft className="w-6 h-6" />
-        </Link>
-        <h1 className="text-3xl font-bold">Quản lý nguyên liệu</h1>
-      </div>
-
-      {/* IMPORT */}
-      <div className="flex flex-wrap gap-4 items-center justify-between">
-        <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-dashed px-4 py-2 text-sm text-gray-600 hover:bg-gray-50">
-          <input
-            type="file"
-            accept=".xls,.xlsx"
-            className="hidden"
-            onChange={(e) => e.target.files && handleImport(e.target.files[0])}
-          />
-          ⬆️ Import danh sách (Excel)
-        </label>
-
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        >
-          + Thêm sản phẩm
-        </button>
-      </div>
-
-      {/* SEARCH & FILTER */}
-      <div className="flex flex-wrap gap-4 items-center bg-gray-50 p-4 rounded-lg border border-gray-200">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Tìm kiếm theo tên hoặc mã..."
-            className="w-full pl-9 pr-4 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-          />
-        </div>
-
-        <div className="min-w-[200px]">
-          <select
-            value={filterCategory}
-            onChange={(e) => setFilterCategory(e.target.value)}
-            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+    <RoleGuard allowedRoles={["admin"]}>
+      <main className="p-8 max-w-6xl mx-auto space-y-6">
+        <div className="flex items-center gap-4">
+          <Link
+            href="/"
+            className="p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-600"
+            title="Trở về trang chủ"
           >
-            <option value="">-- Tất cả danh mục --</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
+            <ArrowLeft className="w-6 h-6" />
+          </Link>
+          <h1 className="text-3xl font-bold">Quản lý nguyên liệu</h1>
         </div>
-      </div>
 
-      {/* TABLE */}
-      <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 text-gray-600">
-            <tr>
-              <th className="px-4 py-3 text-left font-medium">Mã</th>
-              <th className="px-4 py-3 text-left font-medium">Tên sản phẩm</th>
-              <th className="px-4 py-3 text-right font-medium">Cost</th>
-              <th className="px-4 py-3 text-right font-medium">Giá bán</th>
-              <th className="px-4 py-3 text-left font-medium">Phân loại</th>
-              <th className="px-4 py-3 text-center font-medium">Trạng thái</th>
-              <th className="px-4 py-3 text-center font-medium">Hành động</th>
-            </tr>
-          </thead>
+        {/* IMPORT */}
+        <div className="flex flex-wrap gap-4 items-center justify-between">
+          <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-dashed px-4 py-2 text-sm text-gray-600 hover:bg-gray-50">
+            <input
+              type="file"
+              accept=".xls,.xlsx"
+              className="hidden"
+              onChange={(e) =>
+                e.target.files && handleImport(e.target.files[0])
+              }
+            />
+            ⬆️ Import danh sách (Excel)
+          </label>
 
-          <tbody className="divide-y">
-            {filteredProducts.map((p) => (
-              <tr key={p.product_code} className="hover:bg-gray-50 transition">
-                <td className="px-4 py-3 font-mono">{p.product_code}</td>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          >
+            + Thêm sản phẩm
+          </button>
+        </div>
 
-                <td className="px-4 py-3">{p.product_name}</td>
+        {/* SEARCH & FILTER */}
+        <div className="flex flex-wrap gap-4 items-center bg-gray-50 p-4 rounded-lg border border-gray-200">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Tìm kiếm theo tên hoặc mã..."
+              className="w-full pl-9 pr-4 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            />
+          </div>
 
-                <td className="px-4 py-3 text-right">
-                  {p.cost ? (
-                    <span className="font-medium">
-                      {p.cost.toLocaleString()}đ
-                    </span>
-                  ) : (
-                    <span className="italic text-gray-400">Chưa có</span>
-                  )}
-                </td>
-
-                <td className="px-4 py-3 text-right">
-                  {p.price ? (
-                    <span className="font-medium">
-                      {p.price.toLocaleString()}đ
-                    </span>
-                  ) : (
-                    <span className="italic text-gray-400">Chưa có</span>
-                  )}
-                </td>
-
-                <td className="px-4 py-3">
-                  {(() => {
-                    const label =
-                      categories.find(
-                        (c) => c.id === p.category || c.name === p.category
-                      )?.name || p.category;
-                    if (!label) {
-                      return (
-                        <span className="italic text-gray-400">
-                          Chưa phân loại
-                        </span>
-                      );
-                    }
-                    return label;
-                  })()}
-                </td>
-
-                <td className="px-4 py-3 text-center">
-                  {p.has_cost ? (
-                    <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-700">
-                      Đã có cost
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-1 text-xs font-medium text-red-700">
-                      Chưa có cost
-                    </span>
-                  )}
-                </td>
-
-                <td className="px-4 py-3 text-center">
-                  <div className="flex justify-center gap-2">
-                    <button
-                      onClick={() => {
-                        setEditing(p);
-                        setCostInput(p.cost ?? 0);
-                        setPriceInput(p.price ?? 0);
-                        setCategoryInput(p.category ?? "");
-                      }}
-                      className="rounded-md border border-blue-600 px-3 py-1 text-sm font-medium text-blue-600 hover:bg-blue-50 transition"
-                    >
-                      Sửa
-                    </button>
-                    <button
-                      onClick={() => handleDelete(p.product_code)}
-                      className="rounded-md border border-red-600 px-3 py-1 text-sm font-medium text-red-600 hover:bg-red-50 transition"
-                    >
-                      Xóa
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* EDIT MODAL */}
-      {editing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="w-full max-w-md rounded-xl bg-white shadow-lg animate-in fade-in zoom-in">
-            {/* HEADER */}
-            <div className="border-b px-6 py-4">
-              <h2 className="text-lg font-semibold">Chỉnh giá nguyên liệu</h2>
-              <p className="text-sm text-gray-500">
-                {editing.product_name} ({editing.product_code})
-              </p>
-            </div>
-
-            {/* BODY */}
-            <div className="px-6 py-4 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Cost / đơn vị
-                </label>
-                <input
-                  type="number"
-                  value={costInput}
-                  onChange={(e) => setCostInput(Number(e.target.value))}
-                  className="mt-1 w-full rounded-md border px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                  placeholder="Nhập cost"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Giá bán
-                </label>
-                <input
-                  type="number"
-                  value={priceInput}
-                  onChange={(e) => setPriceInput(Number(e.target.value))}
-                  className="mt-1 w-full rounded-md border px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                  placeholder="Nhập giá bán"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Phân loại
-                </label>
-                <select
-                  value={categoryInput}
-                  onChange={(e) => setCategoryInput(e.target.value)}
-                  className="mt-1 w-full rounded-md border px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white"
-                >
-                  <option value="">-- Chọn loại sản phẩm --</option>
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.name}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-                <div className="mt-2 grid grid-cols-2 gap-2">
-                  <input
-                    type="text"
-                    value={newCategoryName}
-                    onChange={(e) => setNewCategoryName(e.target.value)}
-                    className="rounded-md border px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                    placeholder="Loại mới"
-                  />
-                  <button
-                    onClick={async () => {
-                      const id = await addCategory(newCategoryName);
-                      if (id) {
-                        await loadCategories();
-                        setCategoryInput(newCategoryName);
-                        setNewCategoryName("");
-                      }
-                    }}
-                    className="rounded-md bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700"
-                  >
-                    Lưu loại mới
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* FOOTER */}
-            <div className="flex justify-end gap-2 border-t px-6 py-4">
-              <button
-                onClick={() => setEditing(null)}
-                className="rounded-md px-4 py-2 text-sm text-gray-600 hover:bg-gray-100"
-              >
-                Hủy
-              </button>
-              <button
-                onClick={saveCost}
-                className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-              >
-                Lưu
-              </button>
-            </div>
+          <div className="min-w-[200px]">
+            <select
+              value={filterCategory}
+              onChange={(e) => setFilterCategory(e.target.value)}
+              className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            >
+              <option value="">-- Tất cả danh mục --</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
-      )}
 
-      {/* ADD MODAL */}
-      {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="w-full max-w-md rounded-xl bg-white shadow-lg animate-in fade-in zoom-in">
-            {/* HEADER */}
-            <div className="border-b px-6 py-4">
-              <h2 className="text-lg font-semibold">Thêm sản phẩm mới</h2>
-            </div>
+        {/* TABLE */}
+        <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 text-gray-600">
+              <tr>
+                <th className="px-4 py-3 text-left font-medium">Mã</th>
+                <th className="px-4 py-3 text-left font-medium">
+                  Tên sản phẩm
+                </th>
+                <th className="px-4 py-3 text-right font-medium">Cost</th>
+                <th className="px-4 py-3 text-right font-medium">Giá bán</th>
+                <th className="px-4 py-3 text-left font-medium">Phân loại</th>
+                <th className="px-4 py-3 text-center font-medium">
+                  Trạng thái
+                </th>
+                <th className="px-4 py-3 text-center font-medium">Hành động</th>
+              </tr>
+            </thead>
 
-            {/* BODY */}
-            <div className="px-6 py-4 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Mã sản phẩm <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={newProduct.code}
-                  onChange={(e) =>
-                    setNewProduct({ ...newProduct, code: e.target.value })
-                  }
-                  className="mt-1 w-full rounded-md border px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                  placeholder="VD: SP001"
-                />
+            <tbody className="divide-y">
+              {filteredProducts.map((p) => (
+                <tr
+                  key={p.product_code}
+                  className="hover:bg-gray-50 transition"
+                >
+                  <td className="px-4 py-3 font-mono">{p.product_code}</td>
+
+                  <td className="px-4 py-3">{p.product_name}</td>
+
+                  <td className="px-4 py-3 text-right">
+                    {p.cost ? (
+                      <span className="font-medium">
+                        {p.cost.toLocaleString()}đ
+                      </span>
+                    ) : (
+                      <span className="italic text-gray-400">Chưa có</span>
+                    )}
+                  </td>
+
+                  <td className="px-4 py-3 text-right">
+                    {p.price ? (
+                      <span className="font-medium">
+                        {p.price.toLocaleString()}đ
+                      </span>
+                    ) : (
+                      <span className="italic text-gray-400">Chưa có</span>
+                    )}
+                  </td>
+
+                  <td className="px-4 py-3">
+                    {(() => {
+                      const label =
+                        categories.find(
+                          (c) => c.id === p.category || c.name === p.category
+                        )?.name || p.category;
+                      if (!label) {
+                        return (
+                          <span className="italic text-gray-400">
+                            Chưa phân loại
+                          </span>
+                        );
+                      }
+                      return label;
+                    })()}
+                  </td>
+
+                  <td className="px-4 py-3 text-center">
+                    {p.has_cost ? (
+                      <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-700">
+                        Đã có cost
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-1 text-xs font-medium text-red-700">
+                        Chưa có cost
+                      </span>
+                    )}
+                  </td>
+
+                  <td className="px-4 py-3 text-center">
+                    <div className="flex justify-center gap-2">
+                      <button
+                        onClick={() => {
+                          setEditing(p);
+                          setCostInput(p.cost ?? 0);
+                          setPriceInput(p.price ?? 0);
+                          setCategoryInput(p.category ?? "");
+                        }}
+                        className="rounded-md border border-blue-600 px-3 py-1 text-sm font-medium text-blue-600 hover:bg-blue-50 transition"
+                      >
+                        Sửa
+                      </button>
+                      <button
+                        onClick={() => handleDelete(p.product_code)}
+                        className="rounded-md border border-red-600 px-3 py-1 text-sm font-medium text-red-600 hover:bg-red-50 transition"
+                      >
+                        Xóa
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* EDIT MODAL */}
+        {editing && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div className="w-full max-w-md rounded-xl bg-white shadow-lg animate-in fade-in zoom-in">
+              {/* HEADER */}
+              <div className="border-b px-6 py-4">
+                <h2 className="text-lg font-semibold">Chỉnh giá nguyên liệu</h2>
+                <p className="text-sm text-gray-500">
+                  {editing.product_name} ({editing.product_code})
+                </p>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Tên sản phẩm <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={newProduct.name}
-                  onChange={(e) =>
-                    setNewProduct({ ...newProduct, name: e.target.value })
-                  }
-                  className="mt-1 w-full rounded-md border px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                  placeholder="VD: Cà phê sữa"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
+
+              {/* BODY */}
+              <div className="px-6 py-4 space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
                     Cost / đơn vị
                   </label>
                   <input
                     type="number"
-                    value={newProduct.cost}
-                    onChange={(e) =>
-                      setNewProduct({
-                        ...newProduct,
-                        cost: Number(e.target.value),
-                      })
-                    }
+                    value={costInput}
+                    onChange={(e) => setCostInput(Number(e.target.value))}
                     className="mt-1 w-full rounded-md border px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                    placeholder="0"
+                    placeholder="Nhập cost"
                   />
                 </div>
                 <div>
@@ -548,82 +430,212 @@ export default function ProductsPage() {
                   </label>
                   <input
                     type="number"
-                    value={newProduct.price}
-                    onChange={(e) =>
-                      setNewProduct({
-                        ...newProduct,
-                        price: Number(e.target.value),
-                      })
-                    }
+                    value={priceInput}
+                    onChange={(e) => setPriceInput(Number(e.target.value))}
                     className="mt-1 w-full rounded-md border px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                    placeholder="0"
+                    placeholder="Nhập giá bán"
                   />
                 </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Phân loại
-                </label>
-                <select
-                  value={newProduct.category}
-                  onChange={(e) =>
-                    setNewProduct({ ...newProduct, category: e.target.value })
-                  }
-                  className="mt-1 w-full rounded-md border px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white"
-                >
-                  <option value="">-- Chọn loại sản phẩm --</option>
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.name}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-                <div className="mt-2 grid grid-cols-2 gap-2">
-                  <input
-                    type="text"
-                    value={newCategoryName}
-                    onChange={(e) => setNewCategoryName(e.target.value)}
-                    className="rounded-md border px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                    placeholder="Loại mới"
-                  />
-                  <button
-                    onClick={async () => {
-                      const id = await addCategory(newCategoryName);
-                      if (id) {
-                        await loadCategories();
-                        setNewProduct({
-                          ...newProduct,
-                          category: newCategoryName,
-                        });
-                        setNewCategoryName("");
-                      }
-                    }}
-                    className="rounded-md bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Phân loại
+                  </label>
+                  <select
+                    value={categoryInput}
+                    onChange={(e) => setCategoryInput(e.target.value)}
+                    className="mt-1 w-full rounded-md border px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white"
                   >
-                    Lưu loại mới
-                  </button>
+                    <option value="">-- Chọn loại sản phẩm --</option>
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.name}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      value={newCategoryName}
+                      onChange={(e) => setNewCategoryName(e.target.value)}
+                      className="rounded-md border px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                      placeholder="Loại mới"
+                    />
+                    <button
+                      onClick={async () => {
+                        const id = await addCategory(newCategoryName);
+                        if (id) {
+                          await loadCategories();
+                          setCategoryInput(newCategoryName);
+                          setNewCategoryName("");
+                        }
+                      }}
+                      className="rounded-md bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+                    >
+                      Lưu loại mới
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* FOOTER */}
-            <div className="flex justify-end gap-2 border-t px-6 py-4">
-              <button
-                onClick={() => setShowAddModal(false)}
-                className="rounded-md px-4 py-2 text-sm text-gray-600 hover:bg-gray-100"
-              >
-                Hủy
-              </button>
-              <button
-                onClick={handleAddProduct}
-                className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-              >
-                Thêm
-              </button>
+              {/* FOOTER */}
+              <div className="flex justify-end gap-2 border-t px-6 py-4">
+                <button
+                  onClick={() => setEditing(null)}
+                  className="rounded-md px-4 py-2 text-sm text-gray-600 hover:bg-gray-100"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={saveCost}
+                  className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                >
+                  Lưu
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </main>
+        )}
+
+        {/* ADD MODAL */}
+        {showAddModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div className="w-full max-w-md rounded-xl bg-white shadow-lg animate-in fade-in zoom-in">
+              {/* HEADER */}
+              <div className="border-b px-6 py-4">
+                <h2 className="text-lg font-semibold">Thêm sản phẩm mới</h2>
+              </div>
+
+              {/* BODY */}
+              <div className="px-6 py-4 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Mã sản phẩm <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={newProduct.code}
+                    onChange={(e) =>
+                      setNewProduct({ ...newProduct, code: e.target.value })
+                    }
+                    className="mt-1 w-full rounded-md border px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    placeholder="VD: SP001"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Tên sản phẩm <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={newProduct.name}
+                    onChange={(e) =>
+                      setNewProduct({ ...newProduct, name: e.target.value })
+                    }
+                    className="mt-1 w-full rounded-md border px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    placeholder="VD: Cà phê sữa"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Cost / đơn vị
+                    </label>
+                    <input
+                      type="number"
+                      value={newProduct.cost}
+                      onChange={(e) =>
+                        setNewProduct({
+                          ...newProduct,
+                          cost: Number(e.target.value),
+                        })
+                      }
+                      className="mt-1 w-full rounded-md border px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                      placeholder="0"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Giá bán
+                    </label>
+                    <input
+                      type="number"
+                      value={newProduct.price}
+                      onChange={(e) =>
+                        setNewProduct({
+                          ...newProduct,
+                          price: Number(e.target.value),
+                        })
+                      }
+                      className="mt-1 w-full rounded-md border px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Phân loại
+                  </label>
+                  <select
+                    value={newProduct.category}
+                    onChange={(e) =>
+                      setNewProduct({ ...newProduct, category: e.target.value })
+                    }
+                    className="mt-1 w-full rounded-md border px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white"
+                  >
+                    <option value="">-- Chọn loại sản phẩm --</option>
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.name}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      value={newCategoryName}
+                      onChange={(e) => setNewCategoryName(e.target.value)}
+                      className="rounded-md border px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                      placeholder="Loại mới"
+                    />
+                    <button
+                      onClick={async () => {
+                        const id = await addCategory(newCategoryName);
+                        if (id) {
+                          await loadCategories();
+                          setNewProduct({
+                            ...newProduct,
+                            category: newCategoryName,
+                          });
+                          setNewCategoryName("");
+                        }
+                      }}
+                      className="rounded-md bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+                    >
+                      Lưu loại mới
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* FOOTER */}
+              <div className="flex justify-end gap-2 border-t px-6 py-4">
+                <button
+                  onClick={() => setShowAddModal(false)}
+                  className="rounded-md px-4 py-2 text-sm text-gray-600 hover:bg-gray-100"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={handleAddProduct}
+                  className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                >
+                  Thêm
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
+    </RoleGuard>
   );
 }

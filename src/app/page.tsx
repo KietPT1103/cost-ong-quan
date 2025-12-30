@@ -1,12 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { parseExcel } from "@/services/excel";
 import { calculateCost, SaleRow } from "@/services/cost";
 import InputMoney from "@/components/InputMoney";
 import ResultTable from "@/components/ResultTable";
 import Link from "next/link";
-import { Upload, FileSpreadsheet, Calculator, Package, Coffee } from "lucide-react";
+import {
+  Upload,
+  FileSpreadsheet,
+  Calculator,
+  Package,
+  Coffee,
+  LogOut,
+} from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { fetchProductCosts, seedProductCosts } from "@/services/productService";
 import { saveReport } from "@/services/reportService";
@@ -18,14 +25,36 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/Card";
+import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
 
 export default function HomePage() {
+  const { user, role, loading, logout } = useAuth();
+  const router = useRouter();
   const [rows, setRows] = useState<SaleRow[]>([]);
   const [salary, setSalary] = useState(0);
   const [electric, setElectric] = useState(0);
   const [other, setOther] = useState(0);
   const [revenue, setRevenue] = useState(0);
   const [fileName, setFileName] = useState<string>("");
+
+  useEffect(() => {
+    if (!loading) {
+      if (!user) {
+        router.push("/login");
+      } else if (role === "user") {
+        router.push("/pos");
+      }
+    }
+  }, [user, role, loading, router]);
+
+  if (loading || !user || role === "user") {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
+      </div>
+    );
+  }
 
   async function handleFile(file: File) {
     if (!file) return;
@@ -156,6 +185,14 @@ export default function HomePage() {
                 Quản lý sản phẩm
               </Button>
             </Link>
+            <Button
+              variant="ghost"
+              onClick={logout}
+              className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+            >
+              <LogOut className="w-4 h-4" />
+              Đăng xuất
+            </Button>
           </div>
         </div>
 
@@ -312,5 +349,3 @@ export default function HomePage() {
     </main>
   );
 }
-
-

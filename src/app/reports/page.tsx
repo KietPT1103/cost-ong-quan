@@ -8,6 +8,8 @@ import { ArrowLeft, FileText, Search, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 
+import RoleGuard from "@/components/RoleGuard";
+
 export default function ReportsPage() {
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,159 +43,165 @@ export default function ReportsPage() {
   );
 
   return (
-    <main className="min-h-screen bg-gray-50 p-6 md:p-12 font-sans text-slate-800">
-      <div className="max-w-6xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
-          <Link
-            href="/"
-            className="p-2 rounded-full hover:bg-white bg-white/50 transition-colors text-gray-600 shadow-sm"
-            title="Trở về trang chủ"
-          >
-            <ArrowLeft className="w-6 h-6" />
-          </Link>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              Lịch sử báo cáo
-            </h1>
-            <p className="text-muted-foreground">
-              Xem lại các bảng tính chi phí đã lưu
-            </p>
+    <RoleGuard allowedRoles={["admin"]}>
+      <main className="min-h-screen bg-gray-50 p-6 md:p-12 font-sans text-slate-800">
+        <div className="max-w-6xl mx-auto space-y-6">
+          {/* Header */}
+          <div className="flex items-center gap-4 mb-8">
+            <Link
+              href="/"
+              className="p-2 rounded-full hover:bg-white bg-white/50 transition-colors text-gray-600 shadow-sm"
+              title="Trở về trang chủ"
+            >
+              <ArrowLeft className="w-6 h-6" />
+            </Link>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">
+                Lịch sử báo cáo
+              </h1>
+              <p className="text-muted-foreground">
+                Xem lại các bảng tính chi phí đã lưu
+              </p>
+            </div>
           </div>
-        </div>
 
-        {/* Filters */}
-        <Card>
-          <CardContent className="p-4 flex flex-col md:flex-row gap-4 items-end">
-            <div className="w-full md:w-1/3">
-              <label className="text-sm font-medium mb-1 block">
-                Tìm kiếm tên file
-              </label>
-              <div className="relative">
-                <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+          {/* Filters */}
+          <Card>
+            <CardContent className="p-4 flex flex-col md:flex-row gap-4 items-end">
+              <div className="w-full md:w-1/3">
+                <label className="text-sm font-medium mb-1 block">
+                  Tìm kiếm tên file
+                </label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+                  <Input
+                    className="pl-9"
+                    placeholder="Nhập tên file..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="w-full md:w-auto">
+                <label className="text-sm font-medium mb-1 block">
+                  Từ ngày
+                </label>
                 <Input
-                  className="pl-9"
-                  placeholder="Nhập tên file..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
                 />
               </div>
-            </div>
 
-            <div className="w-full md:w-auto">
-              <label className="text-sm font-medium mb-1 block">Từ ngày</label>
-              <Input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-              />
-            </div>
+              <div className="w-full md:w-auto">
+                <label className="text-sm font-medium mb-1 block">
+                  Đến ngày
+                </label>
+                <Input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                />
+              </div>
+            </CardContent>
+          </Card>
 
-            <div className="w-full md:w-auto">
-              <label className="text-sm font-medium mb-1 block">Đến ngày</label>
-              <Input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* List */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="w-5 h-5 text-blue-600" />
-              Danh sách báo cáo ({filteredReports.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 border-y">
-                  <tr>
-                    <th className="px-6 py-3 text-left font-medium text-gray-500">
-                      Ngày tạo
-                    </th>
-                    <th className="px-6 py-3 text-left font-medium text-gray-500">
-                      Tên file
-                    </th>
-                    <th className="px-6 py-3 text-right font-medium text-gray-500">
-                      Doanh thu
-                    </th>
-                    <th className="px-6 py-3 text-right font-medium text-gray-500">
-                      Tổng chi phí
-                    </th>
-                    <th className="px-6 py-3 text-right font-medium text-gray-500">
-                      Lợi nhuận
-                    </th>
-                    <th className="px-6 py-3 text-center font-medium text-gray-500">
-                      Hành động
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {loading ? (
+          {/* List */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="w-5 h-5 text-blue-600" />
+                Danh sách báo cáo ({filteredReports.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 border-y">
                     <tr>
-                      <td colSpan={6} className="px-6 py-8 text-center">
-                        Đang tải dữ liệu...
-                      </td>
+                      <th className="px-6 py-3 text-left font-medium text-gray-500">
+                        Ngày tạo
+                      </th>
+                      <th className="px-6 py-3 text-left font-medium text-gray-500">
+                        Tên file
+                      </th>
+                      <th className="px-6 py-3 text-right font-medium text-gray-500">
+                        Doanh thu
+                      </th>
+                      <th className="px-6 py-3 text-right font-medium text-gray-500">
+                        Tổng chi phí
+                      </th>
+                      <th className="px-6 py-3 text-right font-medium text-gray-500">
+                        Lợi nhuận
+                      </th>
+                      <th className="px-6 py-3 text-center font-medium text-gray-500">
+                        Hành động
+                      </th>
                     </tr>
-                  ) : filteredReports.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={6}
-                        className="px-6 py-8 text-center text-gray-500"
-                      >
-                        Không tìm thấy báo cáo nào
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredReports.map((r) => (
-                      <tr
-                        key={r.id}
-                        className="hover:bg-gray-50/80 transition-colors group"
-                      >
-                        <td className="px-6 py-4 text-gray-500">
-                          {r.createdAt?.seconds
-                            ? new Date(
-                                r.createdAt.seconds * 1000
-                              ).toLocaleString("vi-VN")
-                            : "N/A"}
-                        </td>
-                        <td className="px-6 py-4 font-medium text-gray-900">
-                          {r.fileName}
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          {r.revenue.toLocaleString()}
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          {r.totalCost.toLocaleString()}
-                        </td>
-                        <td
-                          className={`px-6 py-4 text-right font-semibold ${
-                            r.profit >= 0 ? "text-green-600" : "text-red-600"
-                          }`}
-                        >
-                          {r.profit.toLocaleString()}
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          <Link href={`/reports/${r.id}`}>
-                            <Button variant="ghost" size="sm">
-                              Xem chi tiết
-                            </Button>
-                          </Link>
+                  </thead>
+                  <tbody className="divide-y">
+                    {loading ? (
+                      <tr>
+                        <td colSpan={6} className="px-6 py-8 text-center">
+                          Đang tải dữ liệu...
                         </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </main>
+                    ) : filteredReports.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={6}
+                          className="px-6 py-8 text-center text-gray-500"
+                        >
+                          Không tìm thấy báo cáo nào
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredReports.map((r) => (
+                        <tr
+                          key={r.id}
+                          className="hover:bg-gray-50/80 transition-colors group"
+                        >
+                          <td className="px-6 py-4 text-gray-500">
+                            {r.createdAt?.seconds
+                              ? new Date(
+                                  r.createdAt.seconds * 1000
+                                ).toLocaleString("vi-VN")
+                              : "N/A"}
+                          </td>
+                          <td className="px-6 py-4 font-medium text-gray-900">
+                            {r.fileName}
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            {r.revenue.toLocaleString()}
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            {r.totalCost.toLocaleString()}
+                          </td>
+                          <td
+                            className={`px-6 py-4 text-right font-semibold ${
+                              r.profit >= 0 ? "text-green-600" : "text-red-600"
+                            }`}
+                          >
+                            {r.profit.toLocaleString()}
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            <Link href={`/reports/${r.id}`}>
+                              <Button variant="ghost" size="sm">
+                                Xem chi tiết
+                              </Button>
+                            </Link>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </main>
+    </RoleGuard>
   );
 }
