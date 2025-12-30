@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   getAllProducts,
   upsertProductsFromExcel,
@@ -9,10 +9,14 @@ import {
   deleteProduct,
   Product,
 } from "@/services/products.firebase";
-import { addCategory, Category, getCategories } from "@/services/categoryService";
+import {
+  addCategory,
+  Category,
+  getCategories,
+} from "@/services/categoryService";
 import * as XLSX from "xlsx";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Search } from "lucide-react";
 
 type NewProductState = {
   code: string;
@@ -24,12 +28,44 @@ type NewProductState = {
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterCategory, setFilterCategory] = useState("");
+
   const [editing, setEditing] = useState<Product | null>(null);
   const [costInput, setCostInput] = useState<number>(0);
   const [priceInput, setPriceInput] = useState<number>(0);
   const [categoryInput, setCategoryInput] = useState<string>("");
   const [categories, setCategories] = useState<Category[]>([]);
   const [newCategoryName, setNewCategoryName] = useState("");
+
+  const filteredProducts = useMemo(() => {
+    return products.filter((p) => {
+      const matchesSearch =
+        p.product_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.product_name.toLowerCase().includes(searchTerm.toLowerCase());
+
+      // Check if filterCategory is set, then match by ID first, if not then by name
+      // Because some products might save category as ID, others as Name.
+      // But logic in existing code seems to normalize or look up.
+      // existing code: categories.find(c => c.id === p.category || c.name === p.category)
+
+      let matchesCategory = true;
+      if (filterCategory) {
+        // Find the category object for the selected filter ID
+        const selectedCat = categories.find((c) => c.id === filterCategory);
+        // Verify if product matches this category (either by ID or name)
+        if (selectedCat) {
+          matchesCategory =
+            p.category === selectedCat.id || p.category === selectedCat.name;
+        } else {
+          // If for some reason filterCategory is just a string name that's not in categories list as ID
+          matchesCategory = p.category === filterCategory;
+        }
+      }
+
+      return matchesSearch && matchesCategory;
+    });
+  }, [products, searchTerm, filterCategory, categories]);
 
   // Add Product State
   const [showAddModal, setShowAddModal] = useState(false);
@@ -80,16 +116,24 @@ export default function ProductsPage() {
       const dataRows = rows.slice(headerIndex + 1);
       const headerRow = rows[headerIndex] || [];
       const codeIdx = headerRow.findIndex((c) =>
-        String(c || "").toLowerCase().includes("mã hàng")
+        String(c || "")
+          .toLowerCase()
+          .includes("mã hàng")
       );
       const nameIdx = headerRow.findIndex((c) =>
-        String(c || "").toLowerCase().includes("tên hàng")
+        String(c || "")
+          .toLowerCase()
+          .includes("tên hàng")
       );
       const categoryIdx = headerRow.findIndex((c) =>
-        String(c || "").toLowerCase().includes("nhóm hàng")
+        String(c || "")
+          .toLowerCase()
+          .includes("nhóm hàng")
       );
       const priceIdx = headerRow.findIndex((c) =>
-        String(c || "").toLowerCase().includes("giá bán")
+        String(c || "")
+          .toLowerCase()
+          .includes("giá bán")
       );
 
       const mapped = dataRows
@@ -197,22 +241,53 @@ export default function ProductsPage() {
       </div>
 
       {/* IMPORT */}
-      <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-dashed px-4 py-2 text-sm text-gray-600 hover:bg-gray-50">
-        <input
-          type="file"
-          accept=".xls,.xlsx"
-          className="hidden"
-          onChange={(e) => e.target.files && handleImport(e.target.files[0])}
-        />
-        ⬆️ Import danh sách nguyên liệu (Excel)
-      </label>
+      <div className="flex flex-wrap gap-4 items-center justify-between">
+        <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-dashed px-4 py-2 text-sm text-gray-600 hover:bg-gray-50">
+          <input
+            type="file"
+            accept=".xls,.xlsx"
+            className="hidden"
+            onChange={(e) => e.target.files && handleImport(e.target.files[0])}
+          />
+          ⬆️ Import danh sách (Excel)
+        </label>
 
-      <button
-        onClick={() => setShowAddModal(true)}
-        className="inline-flex ml-4 items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-      >
-        + Thêm sản phẩm
-      </button>
+        <button
+          onClick={() => setShowAddModal(true)}
+          className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+        >
+          + Thêm sản phẩm
+        </button>
+      </div>
+
+      {/* SEARCH & FILTER */}
+      <div className="flex flex-wrap gap-4 items-center bg-gray-50 p-4 rounded-lg border border-gray-200">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Tìm kiếm theo tên hoặc mã..."
+            className="w-full pl-9 pr-4 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+          />
+        </div>
+
+        <div className="min-w-[200px]">
+          <select
+            value={filterCategory}
+            onChange={(e) => setFilterCategory(e.target.value)}
+            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+          >
+            <option value="">-- Tất cả danh mục --</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
 
       {/* TABLE */}
       <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
@@ -230,7 +305,7 @@ export default function ProductsPage() {
           </thead>
 
           <tbody className="divide-y">
-            {products.map((p) => (
+            {filteredProducts.map((p) => (
               <tr key={p.product_code} className="hover:bg-gray-50 transition">
                 <td className="px-4 py-3 font-mono">{p.product_code}</td>
 
