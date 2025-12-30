@@ -86,20 +86,25 @@ export async function addProduct(product: Product) {
     updatedAt: serverTimestamp(),
   });
 }
-// MIGRATE OLD PRODUCTS (Temporary)
+// MIGRATE OLD DATA (Products, Categories, Tables)
 export async function migrateOldProducts(targetStoreId = "cafe") {
-  const q = query(collection(db, "products"));
-  const snap = await getDocs(q);
-  let count = 0;
+  const collections = ["products", "categories", "tables"];
+  let totalCount = 0;
 
-  for (const d of snap.docs) {
-    const data = d.data() as Product;
-    if (!data.storeId) {
-      await updateDoc(doc(db, "products", d.id), {
-        storeId: targetStoreId,
-      });
-      count++;
+  for (const colName of collections) {
+    const q = query(collection(db, colName));
+    const snap = await getDocs(q);
+
+    for (const d of snap.docs) {
+      const data = d.data();
+      // If storeId is missing, update it
+      if (!data.storeId) {
+        await updateDoc(doc(db, colName, d.id), {
+          storeId: targetStoreId,
+        });
+        totalCount++;
+      }
     }
   }
-  return count;
+  return totalCount;
 }

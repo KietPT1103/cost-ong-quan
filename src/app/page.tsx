@@ -147,6 +147,23 @@ export default function HomePage() {
     }
   };
 
+  // const handleMigrate = async () => {
+  //   if (
+  //     !confirm(
+  //       "Thao tác này sẽ gán tất cả sản phẩm cũ (chưa có cửa hàng) vào cửa hàng [Cafe]. Bạn có chắc chắn không?"
+  //     )
+  //   )
+  //     return;
+
+  //   try {
+  //     const count = await migrateOldProducts("cafe");
+  //     alert(`Đã cập nhật thành công ${count} sản phẩm cũ vào Cafe!`);
+  //   } catch (error) {
+  //     console.error(error);
+  //     alert("Lỗi khi cập nhật dữ liệu.");
+  //   }
+  // };
+
   return (
     <main className="min-h-screen bg-background p-6 md:p-12 font-sans text-slate-800">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -213,6 +230,18 @@ export default function HomePage() {
                 Sản phẩm
               </Button>
             </Link>
+
+            {/* <div className="w-px h-8 bg-slate-200 mx-2 hidden sm:block"></div>
+
+            <Button
+              variant="ghost"
+              onClick={handleMigrate}
+              className="gap-2 text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+              title="Cập nhật dữ liệu cũ"
+            >
+              <RefreshCw className="w-4 h-4" />
+            </Button> */}
+
             <Button
               variant="ghost"
               onClick={logout}
