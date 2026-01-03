@@ -13,6 +13,7 @@ import {
   Package,
   Coffee,
   LogOut,
+  Wallet,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { fetchProductCosts, seedProductCosts } from "@/services/productService";
@@ -228,6 +229,15 @@ export default function HomePage() {
               >
                 <Package className="w-4 h-4 text-blue-600" />
                 Sản phẩm
+              </Button>
+            </Link>
+            <Link href="/payroll">
+              <Button
+                variant="outline"
+                className="gap-2 hover:bg-slate-50 border-slate-200 text-slate-700"
+              >
+                <Wallet className="w-4 h-4 text-pink-600" />
+                Tính lương
               </Button>
             </Link>
 
