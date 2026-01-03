@@ -46,6 +46,7 @@ export default function HomePage() {
   const [other, setOther] = useState(0);
   const [revenue, setRevenue] = useState(0);
   const [fileName, setFileName] = useState<string>("");
+  const [reportMonth, setReportMonth] = useState("");
 
   useEffect(() => {
     if (!loading) {
@@ -131,6 +132,7 @@ export default function HomePage() {
         totalCost,
         profit,
         storeId,
+        createdAt: reportMonth ? new Date(reportMonth) : undefined,
         details: rows.map((r) => ({
           product_code: r.product_code,
           product_name: r.product_name,
@@ -373,6 +375,20 @@ export default function HomePage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium mb-1 block text-slate-700">
+                    Tháng báo cáo (Tuỳ chọn)
+                  </label>
+                  <input
+                    type="month"
+                    className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    value={reportMonth}
+                    onChange={(e) => setReportMonth(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Nếu để trống sẽ lấy thời gian hiện tại
+                  </p>
+                </div>
                 <InputMoney label="Doanh thu tổng (VNĐ)" set={setRevenue} />
                 <div className="border-t my-2"></div>
                 <InputMoney label="Lương nhân viên" set={setSalary} />
