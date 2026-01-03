@@ -1,10 +1,23 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getReportById, Report } from "@/services/reportService";
+import {
+  getReportById,
+  Report,
+  updateReport,
+  deleteReport,
+} from "@/services/reportService";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import Link from "next/link";
-import { ArrowLeft, Printer, Calendar } from "lucide-react";
+import {
+  ArrowLeft,
+  Printer,
+  Calendar,
+  Pencil,
+  Trash2,
+  Save,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import ResultTable from "@/components/ResultTable";
 import { useParams, useRouter } from "next/navigation";
@@ -15,7 +28,10 @@ export default function ReportDetailPage() {
   const params = useParams();
   const router = useRouter();
   const [report, setReport] = useState<Report | null>(null);
+  const [originalReport, setOriginalReport] = useState<Report | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -28,6 +44,7 @@ export default function ReportDetailPage() {
           return;
         }
         setReport(data);
+        setOriginalReport(data);
       } catch (error) {
         console.error(error);
         alert("Lỗi khi tải báo cáo");
@@ -37,6 +54,62 @@ export default function ReportDetailPage() {
     }
     load();
   }, [params, router]);
+
+  const handleUpdateField = (field: string, value: number) => {
+    if (!report) return;
+    setReport({ ...report, [field]: value });
+  };
+
+  const handleSave = async () => {
+    if (!report || !report.id) return;
+    setSaving(true);
+    try {
+      // Recalculate total cost and profit
+      const totalCost =
+        report.totalMaterialCost +
+        report.salary +
+        report.electric +
+        report.other;
+      const profit = report.revenue - totalCost;
+
+      const dataToUpdate = {
+        revenue: report.revenue,
+        salary: report.salary,
+        electric: report.electric,
+        other: report.other,
+        totalCost,
+        profit,
+      };
+
+      await updateReport(report.id, dataToUpdate);
+      setReport({ ...report, ...dataToUpdate });
+      setOriginalReport({ ...report, ...dataToUpdate });
+      setIsEditing(false);
+      alert("Đã cập nhật báo cáo");
+    } catch (error) {
+      console.error(error);
+      alert("Lỗi khi cập nhật");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setReport(originalReport);
+    setIsEditing(false);
+  };
+
+  const handleDelete = async () => {
+    if (!report?.id) return;
+    if (!confirm("Bạn có chắc chắn muốn xoá báo cáo này không?")) return;
+    try {
+      await deleteReport(report.id);
+      router.push("/reports");
+    } catch (error) {
+      console.error(error);
+      alert("Lỗi khi xoá báo cáo");
+    }
+  };
 
   if (loading) {
     return (
@@ -80,14 +153,57 @@ export default function ReportDetailPage() {
                 </div>
               </div>
             </div>
-            <Button
-              variant="outline"
-              onClick={() => window.print()}
-              className="gap-2 d-print-none"
-            >
-              <Printer className="w-4 h-4" />
-              In báo cáo
-            </Button>
+            <div className="flex items-center gap-2 d-print-none">
+              {!isEditing ? (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={() => window.print()}
+                    className="gap-2"
+                  >
+                    <Printer className="w-4 h-4" />
+                    In báo cáo
+                  </Button>
+                  <Button
+                    variant="default"
+                    onClick={() => setIsEditing(true)}
+                    className="gap-2 bg-blue-600 hover:bg-blue-700"
+                  >
+                    <Pencil className="w-4 h-4" />
+                    Chỉnh sửa
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={handleDelete}
+                    className="gap-2"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Xoá
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={handleCancel}
+                    className="gap-2"
+                    disabled={saving}
+                  >
+                    <X className="w-4 h-4" />
+                    Huỷ
+                  </Button>
+                  <Button
+                    variant="default"
+                    onClick={handleSave}
+                    className="gap-2 bg-green-600 hover:bg-green-700"
+                    disabled={saving}
+                  >
+                    <Save className="w-4 h-4" />
+                    {saving ? "Đang lưu..." : "Lưu thay đổi"}
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
 
           {/* Summary Card */}
@@ -97,6 +213,8 @@ export default function ReportDetailPage() {
             salary={report.salary}
             electric={report.electric}
             other={report.other}
+            isEditing={isEditing}
+            onUpdate={handleUpdateField}
           />
 
           {/* Details Table */}

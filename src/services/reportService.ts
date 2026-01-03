@@ -28,15 +28,26 @@ export type Report = {
   storeId?: string;
 };
 
-export type NewReport = Omit<Report, "id" | "createdAt">;
+export type NewReport = Omit<Report, "id" | "createdAt"> & {
+  createdAt?: Timestamp | Date;
+};
 
 const REPORTS_COLLECTION = "reports";
 
 export async function saveReport(data: NewReport) {
+  let createdAt = Timestamp.now();
+  if (data.createdAt) {
+    if (data.createdAt instanceof Date) {
+      createdAt = Timestamp.fromDate(data.createdAt);
+    } else {
+      createdAt = data.createdAt;
+    }
+  }
+
   const docRef = await addDoc(collection(db, REPORTS_COLLECTION), {
     ...data,
     storeId: data.storeId || "cafe",
-    createdAt: Timestamp.now(),
+    createdAt,
   });
   return docRef.id;
 }
@@ -82,4 +93,16 @@ export async function getReportById(id: string) {
     id: snap.id,
     ...snap.data(),
   } as Report;
+}
+
+export async function updateReport(id: string, data: Partial<Report>) {
+  const docRef = doc(db, REPORTS_COLLECTION, id);
+  await import("firebase/firestore").then(({ updateDoc }) =>
+    updateDoc(docRef, data)
+  );
+}
+
+export async function deleteReport(id: string) {
+  const docRef = doc(db, REPORTS_COLLECTION, id);
+  await import("firebase/firestore").then(({ deleteDoc }) => deleteDoc(docRef));
 }

@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/utils";
 
 type ResultTableProps = {
@@ -7,6 +8,8 @@ type ResultTableProps = {
   salary: number;
   electric: number;
   other: number;
+  isEditing?: boolean;
+  onUpdate?: (field: string, value: number) => void;
 };
 
 export default function ResultTable({
@@ -15,6 +18,8 @@ export default function ResultTable({
   salary,
   electric,
   other,
+  isEditing = false,
+  onUpdate,
 }: ResultTableProps) {
   const totalCost = materialCost + salary + electric + other;
   const profit = revenue - totalCost;
@@ -34,12 +39,14 @@ export default function ResultTable({
     p,
     bold,
     highlight,
+    field,
   }: {
     label: string;
     value: number;
     p: string;
     bold?: boolean;
     highlight?: boolean;
+    field?: "revenue" | "salary" | "electric" | "other";
   }) => (
     <div
       className={cn(
@@ -50,10 +57,21 @@ export default function ResultTable({
     >
       <span>{label}</span>
       <div className="text-right">
-        <div className={cn("font-medium", highlight && "text-xl")}>
-          {formatMoney(value)}
-        </div>
-        <div className="text-xs text-muted-foreground">{p}% doanh thu</div>
+        {isEditing && field ? (
+          <Input
+            type="number"
+            value={value}
+            onChange={(e) => onUpdate?.(field, Number(e.target.value))}
+            className="w-32 text-right h-8"
+          />
+        ) : (
+          <>
+            <div className={cn("font-medium", highlight && "text-xl")}>
+              {formatMoney(value)}
+            </div>
+            <div className="text-xs text-muted-foreground">{p}% doanh thu</div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -65,16 +83,31 @@ export default function ResultTable({
       </CardHeader>
       <CardContent>
         <div className="space-y-1">
-          <Row label="Doanh thu" value={revenue} p="100" bold />
+          <Row label="Doanh thu" value={revenue} p="100" bold field="revenue" />
           <div className="my-4 border-t" />
           <Row
             label="Cost nguyên liệu"
             value={materialCost}
             p={percent(materialCost)}
           />
-          <Row label="Lương nhân viên" value={salary} p={percent(salary)} />
-          <Row label="Điện nước" value={electric} p={percent(electric)} />
-          <Row label="Chi phí khác" value={other} p={percent(other)} />
+          <Row
+            label="Lương nhân viên"
+            value={salary}
+            p={percent(salary)}
+            field="salary"
+          />
+          <Row
+            label="Điện nước"
+            value={electric}
+            p={percent(electric)}
+            field="electric"
+          />
+          <Row
+            label="Chi phí khác"
+            value={other}
+            p={percent(other)}
+            field="other"
+          />
           <div className="my-4 border-t" />
           <Row
             label="Tổng chi phí"
