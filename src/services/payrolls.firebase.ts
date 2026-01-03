@@ -11,6 +11,7 @@ import {
   writeBatch,
   orderBy,
   getDoc,
+  deleteDoc,
 } from "firebase/firestore";
 import { Employee } from "./employees.firebase";
 
@@ -32,7 +33,12 @@ export type PayrollEntry = {
   totalHours: number;
   weekendHours: number;
   salary: number;
+  allowances?: { name: string; amount: number }[];
   note: string;
+  // Fixed Salary Fields
+  salaryType?: "hourly" | "fixed"; // Default 'hourly' if undefined
+  fixedSalary?: number; // Lương cứng
+  standardHours?: number; // Định mức giờ (ví dụ 300)
 };
 
 const PAYROLLS_COLLECTION = "payrolls";
@@ -69,17 +75,22 @@ export async function createPayroll(
   // 2. Create Entries for each employee
   employees.forEach((emp) => {
     const entryRef = doc(collection(db, ENTRIES_COLLECTION));
-    batch.set(entryRef, {
+    const entryData: PayrollEntry = {
       payrollId: payrollRef.id,
       employeeId: emp.id,
-      employeeName: emp.name,
-      role: emp.role,
+      employeeName: emp.name || "Unknown",
+      role: emp.role || "Unknown",
       hourlyRate: emp.hourlyRate,
       totalHours: 0,
       weekendHours: 0,
       salary: 0,
+      allowances: [],
       note: "",
-    });
+      salaryType: "hourly",
+      fixedSalary: 0,
+      standardHours: 0,
+    };
+    batch.set(entryRef, entryData);
   });
 
   await batch.commit();
@@ -124,4 +135,27 @@ export async function updatePayrollEntry(
   data: Partial<PayrollEntry>
 ) {
   await updateDoc(doc(db, ENTRIES_COLLECTION, entryId), data);
+}
+
+export async function addPayrollEntry(payrollId: string) {
+  const entryData: PayrollEntry = {
+    payrollId,
+    employeeId: "manual_" + Date.now(),
+    employeeName: "Nhân viên mới",
+    role: "Phục vụ",
+    hourlyRate: 0,
+    totalHours: 0,
+    weekendHours: 0,
+    salary: 0,
+    allowances: [],
+    note: "",
+    salaryType: "hourly",
+    fixedSalary: 0,
+    standardHours: 0,
+  };
+  await addDoc(collection(db, ENTRIES_COLLECTION), entryData);
+}
+
+export async function deletePayrollEntry(entryId: string) {
+  await deleteDoc(doc(db, ENTRIES_COLLECTION, entryId));
 }
