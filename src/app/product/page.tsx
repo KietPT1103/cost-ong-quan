@@ -185,11 +185,15 @@ export default function ProductsPage() {
   // SAVE COST & PRICE
   async function saveCost() {
     if (!editing) return;
-    await updateProductCost(editing.product_code, {
-      cost: costInput,
-      price: priceInput,
-      category: categoryInput,
-    });
+    await updateProductCost(
+      editing.product_code,
+      {
+        cost: costInput,
+        price: priceInput,
+        category: categoryInput,
+      },
+      storeId
+    );
     setEditing(null);
     await loadProducts();
   }
@@ -225,7 +229,7 @@ export default function ProductsPage() {
   async function handleDelete(code: string) {
     if (!confirm(`Bạn chắc chắn muốn xóa sản phẩm ${code}?`)) return;
     try {
-      await deleteProduct(code);
+      await deleteProduct(code, storeId);
       await loadProducts();
     } catch (error) {
       console.error(error);

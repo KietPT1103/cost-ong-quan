@@ -26,8 +26,8 @@ export async function fetchProductCosts(
 
   snapshot.forEach((doc) => {
     const data = doc.data();
-    if (typeof data.cost === "number") {
-      costMap[doc.id] = data.cost;
+    if (typeof data.cost === "number" && data.product_code) {
+      costMap[data.product_code] = data.cost;
     }
   });
 
