@@ -15,6 +15,9 @@ import {
   Search,
   Trash2,
   X,
+  Filter,
+  ArrowUpDown,
+  AlertCircle,
 } from "lucide-react";
 import { getEmployees, Employee } from "@/services/employees.firebase";
 import { createPayroll, PayrollEntry } from "@/services/payrolls.firebase";
@@ -87,6 +90,13 @@ export default function TimesheetPage() {
   const [error, setError] = useState("");
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [filterRole, setFilterRole] = useState("All");
+  const [filterError, setFilterError] = useState(false);
+  const [sortConfig, setSortConfig] = useState<{
+    key: keyof EmployeeSummary | "Name" | "Role" | "TotalHours" | "TotalSalary";
+    direction: "asc" | "desc" | null;
+  }>({ key: "Name", direction: "asc" }); // Default sort by Name
+
   const [hoveredError, setHoveredError] = useState<{
     x: number;
     y: number;
@@ -110,11 +120,39 @@ export default function TimesheetPage() {
     }
   }, [storeId]);
 
-  const filteredData = summaryData.filter(
-    (emp) =>
-      emp.Name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      emp.EnNo.includes(searchTerm)
-  );
+  const filteredData = summaryData
+    .filter((emp) => {
+      const matchSearch =
+        emp.Name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        emp.EnNo.includes(searchTerm);
+      const matchRole = filterRole === "All" || emp.Role === filterRole;
+      const matchError = !filterError || emp.Errors.length > 0;
+
+      return matchSearch && matchRole && matchError;
+    })
+    .sort((a, b) => {
+      if (!sortConfig.key || !sortConfig.direction) return 0;
+      const key = sortConfig.key;
+      const direction = sortConfig.direction === "asc" ? 1 : -1;
+
+      let valA: any = a[key as keyof EmployeeSummary];
+      let valB: any = b[key as keyof EmployeeSummary];
+
+      if (typeof valA === "string") valA = valA.toLowerCase();
+      if (typeof valB === "string") valB = valB.toLowerCase();
+
+      if (valA < valB) return -1 * direction;
+      if (valA > valB) return 1 * direction;
+      return 0;
+    });
+
+  const handleSort = (key: any) => {
+    let direction: "asc" | "desc" | null = "asc";
+    if (sortConfig.key === key && sortConfig.direction === "asc") {
+      direction = "desc";
+    }
+    setSortConfig({ key, direction });
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -233,37 +271,53 @@ export default function TimesheetPage() {
             const inTime = new Date(inTimeStr);
             const outTime = new Date(outTimeStr);
 
-            // Simple heuristic: If next scan is within 16 hours, assume it's a shift.
-            // Strict "Same Date" check might fail for overnight shifts, but user python code used strict same date.
-            // We will stick to Same Date logic as per user's python script for consistency,
-            // OR adapt if they want overnight. User's logic: "if                // Check for valid shift (allow overnight, max 24h)
-            const diffMs = outTime.getTime() - inTime.getTime();
-            const hours = diffMs / (1000 * 60 * 60);
-
-            if (hours > 0 && hours < 24) {
-              totalHours += hours;
-              const day = inTime.getDay();
-              const isWeekend = day === 0 || day === 6;
-              if (isWeekend) {
-                weekendHours += hours;
-              }
-
-              // Add Valid Shift
-              shifts.push({
-                id: `${name}-${i}`,
-                date: inTimeStr.split(" ")[0],
-                inTime: inTimeStr,
-                outTime: outTimeStr,
-                hours: parseFloat(hours.toFixed(2)),
-                isWeekend: isWeekend,
-                isValid: true,
-              });
-
-              matched = true;
-              i += 2;
+            // LOGIC: Shift must end before 5:00 AM of the NEXT day relative to inTime.
+            // Calculate 5AM Limit
+            const limitDate = new Date(inTime);
+            if (limitDate.getHours() >= 5) {
+              // Normal case: Start after 5am. Limit is 5am tomorrow.
+              limitDate.setDate(limitDate.getDate() + 1);
             } else {
-              // Try to see if next one is better? Or just fail this pair.
-              // If > 24h, likely missed punch or next day.
+              // Edge case: Start before 5am (e.g. 4am). Limit is 5am TODAY?
+              // Or does it belong to yesterday?
+              // User says "after 5am start of next day".
+              // So if InTime is 04:00, it might technically be "late shift from yesterday" but here we treat timestamps as just points.
+              // If InTime is 04:00, let's allow it to go until 05:00 OR 05:00 next day?
+              // Let's assume InTime > 5am generally. If InTime < 5am, limit is 5am Same Day (short shift) or Next Day?
+              // Safest: limit is always Next 5AM boundary.
+              // If 4am, next 5am is 5am today.
+              // If 6am, next 5am is 5am tomorrow.
+            }
+            limitDate.setHours(5, 0, 0, 0);
+
+            // Check if outTime is within limit
+            if (outTime <= limitDate) {
+              const diffMs = outTime.getTime() - inTime.getTime();
+              const hours = diffMs / (1000 * 60 * 60);
+
+              if (hours > 0) {
+                totalHours += hours;
+                const day = inTime.getDay();
+                const isWeekend = day === 0 || day === 6;
+                if (isWeekend) weekendHours += hours;
+
+                shifts.push({
+                  id: `${name}-${i}`,
+                  date: inTimeStr.split(" ")[0],
+                  inTime: inTimeStr,
+                  outTime: outTimeStr,
+                  hours: parseFloat(hours.toFixed(2)),
+                  isWeekend: isWeekend,
+                  isValid: true,
+                });
+                matched = true;
+                i += 2;
+              } else {
+                matched = false;
+              }
+            } else {
+              // OutTime is past the 5AM limit -> It belongs to Next Day
+              // So Current IN is missing OUT.
               matched = false;
             }
           }
@@ -492,13 +546,14 @@ export default function TimesheetPage() {
           salaryType: "hourly",
           fixedSalary: 0,
           standardHours: 0,
+          shifts: emp.Shifts, // Save detailed shifts
         };
         batch.set(entryRef, entryData);
       }
 
       await batch.commit();
       alert("Đã lưu bảng lương thành công!");
-      router.push("/payroll");
+      // router.push("/payroll"); // Don't redirect
     } catch (e) {
       console.error(e);
       setError("Lỗi khi lưu vào CSDL");
@@ -646,18 +701,61 @@ export default function TimesheetPage() {
                   </button>
                 )}
               </div>
+
+              <select
+                className="h-9 px-3 rounded-md border border-input bg-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                value={filterRole}
+                onChange={(e) => setFilterRole(e.target.value)}
+              >
+                <option value="All">Tất cả vai trò</option>
+                {Object.keys(ROLE_GROUPS).map((group) => (
+                  <optgroup key={group} label={group}>
+                    {ROLE_GROUPS[group].map((role) => (
+                      <option key={role} value={role}>
+                        {role}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+
+              <Button
+                variant={filterError ? "default" : "outline"}
+                size="sm"
+                className={`gap-2 h-9 ${
+                  filterError
+                    ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
+                    : "text-gray-600"
+                }`}
+                onClick={() => setFilterError(!filterError)}
+                title="Chỉ hiện nhân viên có lỗi hoặc thiếu giờ"
+              >
+                <AlertCircle size={16} />
+                <span className="hidden sm:inline">Lỗi</span>
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 h-9 text-gray-600"
+                onClick={() => handleSort("Name")}
+                title="Sắp xếp theo tên"
+              >
+                <ArrowUpDown size={16} />
+              </Button>
+
               <Button
                 variant="outline"
                 onClick={exportToCSV}
-                className="border-green-600 text-green-700 hover:bg-green-50 shrink-0"
+                className="border-green-600 text-green-700 hover:bg-green-50 shrink-0 h-9"
               >
-                <Save className="mr-2 h-4 w-4" /> Xuất Excel
+                <Save className="mr-2 h-4 w-4" /> Excel
               </Button>
               <Button
                 onClick={handleSaveToDB}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-200 shrink-0"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-200 shrink-0 h-9"
               >
-                <Save className="mr-2 h-4 w-4" /> Lưu Vào CSDL
+                <Save className="mr-2 h-4 w-4" /> Lưu DB
               </Button>
             </div>
           </div>

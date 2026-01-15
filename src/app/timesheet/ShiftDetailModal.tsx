@@ -384,7 +384,7 @@ export default function ShiftDetailModal({
 
         <div className="overflow-y-auto p-4 flex-1">
           <table className="w-full text-sm text-left border-collapse">
-            <thead className="bg-gray-50 text-gray-700 sticky top-0 z-10">
+            <thead className="bg-gray-50 text-gray-700 sticky -top-4 z-10">
               <tr>
                 <th className="p-3 border-b w-10"></th>
                 <th className="p-3 border-b">Ngày</th>
@@ -399,13 +399,16 @@ export default function ShiftDetailModal({
               {shifts.map((shift, index) => (
                 <tr
                   key={shift.id}
-                  className={`hover:bg-gray-50 group ${
-                    draggedIndex === index ? "opacity-50" : ""
-                  }`}
+                  className={`group transition-colors ${
+                    !shift.inTime || !shift.outTime || shift.hours === 0
+                      ? "bg-red-50 border-l-4 border-red-400"
+                      : "hover:bg-gray-50 border-l-4 border-transparent"
+                  } ${draggedIndex === index ? "opacity-40" : ""}`}
                   draggable
                   onDragStart={() => handleDragStart(index)}
                   onDragOver={handleDragOver}
                   onDrop={() => handleDrop(index)}
+                  onDragEnd={() => setDraggedIndex(null)} // Fix ghost effect
                 >
                   <td className="p-2 align-middle text-center cursor-move text-gray-400 hover:text-gray-600">
                     <GripVertical size={16} />

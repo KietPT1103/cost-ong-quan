@@ -23,6 +23,17 @@ export type Payroll = {
   createdAt?: any;
 };
 
+// Shared Shift Interface
+export interface Shift {
+  id: string;
+  date: string;
+  inTime: string;
+  outTime: string;
+  hours: number;
+  isWeekend: boolean;
+  isValid: boolean;
+}
+
 export type PayrollEntry = {
   id?: string;
   payrollId: string;
@@ -39,6 +50,7 @@ export type PayrollEntry = {
   salaryType?: "hourly" | "fixed"; // Default 'hourly' if undefined
   fixedSalary?: number; // Lương cứng
   standardHours?: number; // Định mức giờ (ví dụ 300)
+  shifts?: Shift[]; // Detailed shifts
 };
 
 const PAYROLLS_COLLECTION = "payrolls";
@@ -77,7 +89,7 @@ export async function createPayroll(
     const entryRef = doc(collection(db, ENTRIES_COLLECTION));
     const entryData: PayrollEntry = {
       payrollId: payrollRef.id,
-      employeeId: emp.id,
+      employeeId: emp.id || "unknown",
       employeeName: emp.name || "Unknown",
       role: emp.role || "Unknown",
       hourlyRate: emp.hourlyRate,

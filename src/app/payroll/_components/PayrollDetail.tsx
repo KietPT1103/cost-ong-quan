@@ -9,7 +9,18 @@ import {
   PayrollEntry,
 } from "@/services/payrolls.firebase";
 import { Input } from "@/components/ui/Input";
-import { ArrowLeft, Loader2, Plus, Settings, Trash2, X } from "lucide-react";
+import {
+  ArrowLeft,
+  Loader2,
+  Plus,
+  Settings,
+  Trash2,
+  X,
+  CalendarClock,
+  Eye,
+  AlertCircle,
+} from "lucide-react";
+import ShiftDetailModal, { Shift } from "@/app/timesheet/ShiftDetailModal";
 import { Button } from "@/components/ui/Button";
 import { debounce } from "lodash";
 import InputMoney from "@/components/InputMoney";
@@ -33,6 +44,19 @@ export default function PayrollDetail({
     direction: "asc" | "desc" | null;
   }>({ key: "totalIncome", direction: null });
 
+  // Column Visibility State
+  const [visibleColumns, setVisibleColumns] = useState({
+    name: true,
+    role: true,
+    hours: true,
+    rate: true,
+    bonus: true,
+    allowance: true,
+    total: true,
+    note: true,
+  });
+  const [showColumnSelector, setShowColumnSelector] = useState(false);
+
   // Allowance Modal State
   const [selectedEntryIndex, setSelectedEntryIndex] = useState<number | null>(
     null
@@ -48,6 +72,11 @@ export default function PayrollDetail({
     fixedSalary: number;
     standardHours: number;
   }>({ salaryType: "hourly", fixedSalary: 0, standardHours: 0 });
+
+  // Shift Modal State
+  const [shiftModalOpen, setShiftModalOpen] = useState(false);
+  const [currentShiftEntry, setCurrentShiftEntry] =
+    useState<PayrollEntry | null>(null);
 
   useEffect(() => {
     loadEntries();
@@ -133,6 +162,69 @@ export default function PayrollDetail({
     // but actually I should fix it now).
     // I will assume for now I will fix the UI calling part to use a new handleUpdateById.
     // For this ReplaceBlock, I will just add the sort logic helper.
+  };
+
+  const handleOpenShiftModal = (entry: PayrollEntry) => {
+    setCurrentShiftEntry(entry);
+    setShiftModalOpen(true);
+  };
+
+  const handleSaveShifts = async (newShifts: Shift[]) => {
+    if (!currentShiftEntry || !currentShiftEntry.id) return;
+
+    // Recalculate totals from raw times
+    let newTotal = 0;
+    let newWeekend = 0;
+
+    newShifts.forEach((s) => {
+      // Logic copied from TimesheetPage to ensure consistency
+      // Calculate raw hours from inTime/outTime for precision
+      let rawHours = 0;
+      if (s.inTime && s.outTime) {
+        const start = new Date(s.inTime);
+        let end = new Date(s.outTime);
+        if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
+          if (end <= start) end = new Date(end.getTime() + 24 * 60 * 60 * 1000);
+          const diff = end.getTime() - start.getTime();
+          rawHours = diff / (1000 * 60 * 60);
+        }
+      }
+
+      if (s.isValid && rawHours > 0) {
+        newTotal += rawHours;
+        if (s.isWeekend) newWeekend += rawHours;
+      }
+    });
+
+    const totalHours = parseFloat(newTotal.toFixed(2));
+    const weekendHours = parseFloat(newWeekend.toFixed(2));
+
+    // Update Local State
+    const index = entries.findIndex((e) => e.id === currentShiftEntry.id);
+    if (index === -1) return;
+
+    const updatedEntry = {
+      ...entries[index],
+      shifts: newShifts,
+      totalHours,
+      weekendHours,
+    };
+
+    // Recalculate Salary
+    updatedEntry.salary = calculateSalary(updatedEntry);
+
+    const newEntries = [...entries];
+    newEntries[index] = updatedEntry;
+    setEntries(newEntries);
+    setShiftModalOpen(false);
+
+    // Persist to DB
+    await updatePayrollEntry(currentShiftEntry.id, {
+      shifts: newShifts as any[], // Type mismatch bypass if needed
+      totalHours,
+      weekendHours,
+      salary: updatedEntry.salary,
+    });
   };
 
   // -- LOGIC TÍNH LƯƠNG MỚI --
@@ -423,6 +515,136 @@ export default function PayrollDetail({
             </optgroup>
           </select>
         </div>
+
+        <div className="relative">
+          <Button
+            variant="outline"
+            size="icon"
+            className="bg-white"
+            onClick={() => setShowColumnSelector(!showColumnSelector)}
+            title="Ẩn/Hiện cột"
+          >
+            <Eye className="w-4 h-4 text-slate-600" />
+          </Button>
+          {showColumnSelector && (
+            <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-xl border border-slate-200 p-2 z-50 animate-in fade-in zoom-in-95">
+              <div className="space-y-1">
+                <label className="flex items-center gap-2 p-2 hover:bg-slate-50 rounded cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={visibleColumns.name}
+                    onChange={(e) =>
+                      setVisibleColumns((prev) => ({
+                        ...prev,
+                        name: e.target.checked,
+                      }))
+                    }
+                    className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                  />
+                  <span className="text-sm">Tên Nhân Viên</span>
+                </label>
+                <label className="flex items-center gap-2 p-2 hover:bg-slate-50 rounded cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={visibleColumns.role}
+                    onChange={(e) =>
+                      setVisibleColumns((prev) => ({
+                        ...prev,
+                        role: e.target.checked,
+                      }))
+                    }
+                    className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                  />
+                  <span className="text-sm">Vai Trò</span>
+                </label>
+                <label className="flex items-center gap-2 p-2 hover:bg-slate-50 rounded cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={visibleColumns.hours}
+                    onChange={(e) =>
+                      setVisibleColumns((prev) => ({
+                        ...prev,
+                        hours: e.target.checked,
+                      }))
+                    }
+                    className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                  />
+                  <span className="text-sm">Số Giờ</span>
+                </label>
+                <label className="flex items-center gap-2 p-2 hover:bg-slate-50 rounded cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={visibleColumns.rate}
+                    onChange={(e) =>
+                      setVisibleColumns((prev) => ({
+                        ...prev,
+                        rate: e.target.checked,
+                      }))
+                    }
+                    className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                  />
+                  <span className="text-sm">Lương/h</span>
+                </label>
+                <label className="flex items-center gap-2 p-2 hover:bg-slate-50 rounded cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={visibleColumns.bonus}
+                    onChange={(e) =>
+                      setVisibleColumns((prev) => ({
+                        ...prev,
+                        bonus: e.target.checked,
+                      }))
+                    }
+                    className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                  />
+                  <span className="text-sm">Bonus</span>
+                </label>
+                <label className="flex items-center gap-2 p-2 hover:bg-slate-50 rounded cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={visibleColumns.allowance}
+                    onChange={(e) =>
+                      setVisibleColumns((prev) => ({
+                        ...prev,
+                        allowance: e.target.checked,
+                      }))
+                    }
+                    className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                  />
+                  <span className="text-sm">Phụ cấp</span>
+                </label>
+                <label className="flex items-center gap-2 p-2 hover:bg-slate-50 rounded cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={visibleColumns.total}
+                    onChange={(e) =>
+                      setVisibleColumns((prev) => ({
+                        ...prev,
+                        total: e.target.checked,
+                      }))
+                    }
+                    className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                  />
+                  <span className="text-sm">Tổng Tiền</span>
+                </label>
+                <label className="flex items-center gap-2 p-2 hover:bg-slate-50 rounded cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={visibleColumns.note}
+                    onChange={(e) =>
+                      setVisibleColumns((prev) => ({
+                        ...prev,
+                        note: e.target.checked,
+                      }))
+                    }
+                    className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                  />
+                  <span className="text-sm">Ghi chú</span>
+                </label>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="border rounded-lg overflow-hidden bg-white shadow-sm">
@@ -430,52 +652,68 @@ export default function PayrollDetail({
           <table className="w-full text-sm">
             <thead className="bg-yellow-300 border-b-2 border-slate-200 text-slate-900 sticky top-0 z-10">
               <tr>
-                <th
-                  className="px-4 py-3 text-left font-bold border-r w-[200px] cursor-pointer hover:bg-yellow-400 transition-colors"
-                  onClick={() => handleSort("employeeName")}
-                >
-                  Tên Nhân Viên{" "}
-                  {sortConfig.key === "employeeName" &&
-                    (sortConfig.direction === "asc" ? "▲" : "▼")}
-                </th>
-                <th
-                  className="px-4 py-3 text-center font-bold border-r w-[120px] cursor-pointer hover:bg-yellow-400 transition-colors"
-                  onClick={() => handleSort("role")}
-                >
-                  Vai Trò{" "}
-                  {sortConfig.key === "role" &&
-                    (sortConfig.direction === "asc" ? "▲" : "▼")}
-                </th>
-                <th className="px-4 py-3 text-right font-bold border-r w-[80px]">
-                  Số Giờ
-                </th>
-                <th
-                  className="px-4 py-3 text-right font-bold border-r w-[110px] cursor-pointer hover:bg-yellow-400 transition-colors"
-                  onClick={() => handleSort("hourlyRate")}
-                >
-                  Lương/h{" "}
-                  {sortConfig.key === "hourlyRate" &&
-                    (sortConfig.direction === "asc" ? "▲" : "▼")}
-                </th>
-                <th className="px-4 py-3 text-right font-bold border-r w-[100px]">
-                  Bonus
-                  <br />
-                  <span className="text-[10px] font-normal">(Cuối tuần)</span>
-                </th>
-                <th className="px-4 py-3 text-left font-bold border-r w-[150px]">
-                  Phụ cấp
-                </th>
-                <th
-                  className="px-4 py-3 text-right font-bold border-r w-[120px] cursor-pointer hover:bg-yellow-400 transition-colors"
-                  onClick={() => handleSort("salary")}
-                >
-                  Tổng Tiền{" "}
-                  {sortConfig.key === "salary" &&
-                    (sortConfig.direction === "asc" ? "▲" : "▼")}
-                </th>
-                <th className="px-4 py-3 text-left font-bold min-w-[150px]">
-                  Ghi chú
-                </th>
+                {visibleColumns.name && (
+                  <th
+                    className="px-4 py-3 text-left font-bold border-r w-[180px] cursor-pointer hover:bg-yellow-400 transition-colors"
+                    onClick={() => handleSort("employeeName")}
+                  >
+                    Tên Nhân Viên{" "}
+                    {sortConfig.key === "employeeName" &&
+                      (sortConfig.direction === "asc" ? "▲" : "▼")}
+                  </th>
+                )}
+                {visibleColumns.role && (
+                  <th
+                    className="px-4 py-3 text-center font-bold border-r w-[110px] cursor-pointer hover:bg-yellow-400 transition-colors"
+                    onClick={() => handleSort("role")}
+                  >
+                    Vai Trò{" "}
+                    {sortConfig.key === "role" &&
+                      (sortConfig.direction === "asc" ? "▲" : "▼")}
+                  </th>
+                )}
+                {visibleColumns.hours && (
+                  <th className="px-4 py-3 text-right font-bold border-r w-[120px]">
+                    Số Giờ
+                  </th>
+                )}
+                {visibleColumns.rate && (
+                  <th
+                    className="px-4 py-3 text-right font-bold border-r w-[110px] cursor-pointer hover:bg-yellow-400 transition-colors"
+                    onClick={() => handleSort("hourlyRate")}
+                  >
+                    Lương/h{" "}
+                    {sortConfig.key === "hourlyRate" &&
+                      (sortConfig.direction === "asc" ? "▲" : "▼")}
+                  </th>
+                )}
+                {visibleColumns.bonus && (
+                  <th className="px-4 py-3 text-right font-bold border-r w-[100px]">
+                    Bonus
+                    <br />
+                    <span className="text-[10px] font-normal">(Cuối tuần)</span>
+                  </th>
+                )}
+                {visibleColumns.allowance && (
+                  <th className="px-4 py-3 text-left font-bold border-r w-[130px]">
+                    Phụ cấp
+                  </th>
+                )}
+                {visibleColumns.total && (
+                  <th
+                    className="px-4 py-3 text-right font-bold border-r w-[140px] cursor-pointer hover:bg-yellow-400 transition-colors"
+                    onClick={() => handleSort("salary")}
+                  >
+                    Tổng Tiền{" "}
+                    {sortConfig.key === "salary" &&
+                      (sortConfig.direction === "asc" ? "▲" : "▼")}
+                  </th>
+                )}
+                {visibleColumns.note && (
+                  <th className="px-4 py-3 text-left font-bold min-w-[200px]">
+                    Ghi chú
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -486,146 +724,198 @@ export default function PayrollDetail({
                     entry.salaryType === "fixed" ? "bg-blue-50/50" : ""
                   }`}
                 >
-                  <td className="px-2 py-2 font-medium border-r relative">
-                    <Input
-                      value={entry.employeeName}
-                      onChange={(e) =>
-                        handleUpdateById(
-                          entry.id!,
-                          "employeeName",
-                          e.target.value
-                        )
-                      }
-                      className="h-8 border-transparent focus:border-input bg-transparent shadow-none pr-8"
-                    />
-                    <div className="absolute right-1 top-1/2 -translate-y-1/2 flex opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => openSettings(entry)}
-                        className="h-6 w-6 text-slate-400 hover:text-blue-600 hover:bg-transparent"
-                        title="Cấu hình lương"
-                      >
-                        <Settings className="w-3 h-3" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDeleteEntry(entry.id!)}
-                        className="h-6 w-6 text-slate-400 hover:text-red-500 hover:bg-transparent"
-                        title="Xóa nhân viên này"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  </td>
-                  <td className="px-2 py-2 border-r text-center">
-                    <RoleSelect
-                      className="w-full h-8 rounded-md border-transparent bg-transparent hover:bg-slate-100 px-1 text-xs text-center cursor-pointer focus:ring-1 focus:ring-emerald-500"
-                      value={entry.role}
-                      onChange={(e: any) =>
-                        handleUpdateById(entry.id!, "role", e.target.value)
-                      }
-                    />
-                  </td>
-                  <td className="px-2 py-2 border-r">
-                    <input
-                      type="number"
-                      className="w-full text-right bg-transparent focus:outline-none focus:ring-1 focus:ring-emerald-500 rounded px-1 py-1"
-                      value={entry.totalHours || ""}
-                      onChange={(e) =>
-                        handleUpdateById(
-                          entry.id!,
-                          "totalHours",
-                          e.target.value
-                        )
-                      }
-                      placeholder="0"
-                    />
-                  </td>
-                  <td className="px-2 py-2 text-right border-r font-mono text-slate-500">
-                    {entry.salaryType === "fixed" ? (
-                      <div
-                        className="cursor-help text-xs"
-                        title={`Lương cứng: ${entry.fixedSalary?.toLocaleString()}đ\nĐịnh mức: ${
-                          entry.standardHours
-                        }h\nOT: ${entry.hourlyRate.toLocaleString()}đ/h`}
-                      >
-                        <span className="font-bold text-blue-600">Fixed</span>
-                        <div className="text-[10px]">
-                          {entry.hourlyRate.toLocaleString()} (OT)
-                        </div>
+                  {visibleColumns.name && (
+                    <td className="px-2 py-2 font-medium border-r relative">
+                      <div className="flex items-center gap-1">
+                        {entry.shifts &&
+                          entry.shifts.some(
+                            (s) => !s.isValid || !s.inTime || !s.outTime
+                          ) && (
+                            <div
+                              className="text-red-500 cursor-help"
+                              title="Có ca làm việc lỗi hoặc chưa đủ thông tin"
+                            >
+                              <AlertCircle size={14} />
+                            </div>
+                          )}
+                        <Input
+                          value={entry.employeeName}
+                          onChange={(e) =>
+                            handleUpdateById(
+                              entry.id!,
+                              "employeeName",
+                              e.target.value
+                            )
+                          }
+                          className={`h-8 border-transparent focus:border-input bg-transparent shadow-none pr-8 ${
+                            entry.shifts &&
+                            entry.shifts.some(
+                              (s) => !s.isValid || !s.inTime || !s.outTime
+                            )
+                              ? "text-red-600 font-bold"
+                              : ""
+                          }`}
+                        />
                       </div>
-                    ) : (
-                      <InputMoney
-                        value={entry.hourlyRate}
-                        set={(val) =>
-                          handleUpdateById(entry.id!, "hourlyRate", val)
+                      <div className="absolute right-1 top-1/2 -translate-y-1/2 flex opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => openSettings(entry)}
+                          className="h-6 w-6 text-slate-400 hover:text-blue-600 hover:bg-transparent"
+                          title="Cấu hình lương"
+                        >
+                          <Settings className="w-3 h-3" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteEntry(entry.id!)}
+                          className="h-6 w-6 text-slate-400 hover:text-red-500 hover:bg-transparent"
+                          title="Xóa nhân viên này"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </td>
+                  )}
+                  {visibleColumns.role && (
+                    <td className="px-2 py-2 border-r text-center">
+                      <RoleSelect
+                        className="w-full h-8 rounded-md border-transparent bg-transparent hover:bg-slate-100 px-1 text-xs text-center cursor-pointer focus:ring-1 focus:ring-emerald-500"
+                        value={entry.role}
+                        onChange={(e: any) =>
+                          handleUpdateById(entry.id!, "role", e.target.value)
                         }
-                        className="h-8 border-transparent bg-transparent shadow-none text-right px-1"
                       />
-                    )}
-                  </td>
-                  <td className="px-2 py-2 border-r">
-                    <input
-                      type="number"
-                      className="w-full text-right bg-transparent focus:outline-none focus:ring-1 focus:ring-emerald-500 rounded px-1 py-1"
-                      value={entry.weekendHours || ""}
-                      onChange={(e) =>
-                        handleUpdateById(
-                          entry.id!,
-                          "weekendHours",
-                          e.target.value
-                        )
-                      }
-                      placeholder="0"
-                    />
-                  </td>
-                  <td
-                    className="px-2 py-2 border-r cursor-pointer hover:bg-slate-100 transition-colors"
-                    onClick={() => openAllowanceModal(entry)}
-                  >
-                    <div className="flex flex-wrap gap-1">
-                      {entry.allowances && entry.allowances.length > 0 ? (
-                        entry.allowances.map((a, i) => (
-                          <span
-                            key={i}
-                            className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-700 cursor-help"
-                            title={`${a.name}: ${a.amount.toLocaleString()} ₫`}
-                          >
-                            {a.name}
-                          </span>
-                        ))
+                    </td>
+                  )}
+                  {visibleColumns.hours && (
+                    <td className="px-2 py-2 border-r relative group/cell">
+                      <input
+                        type="number"
+                        className="w-full text-right bg-transparent focus:outline-none focus:ring-1 focus:ring-emerald-500 rounded px-1 py-1 pr-7"
+                        value={entry.totalHours || ""}
+                        onChange={(e) =>
+                          handleUpdateById(
+                            entry.id!,
+                            "totalHours",
+                            e.target.value
+                          )
+                        }
+                        placeholder="0"
+                      />
+                      <div className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover/cell:opacity-100 transition-opacity">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-indigo-500 hover:bg-indigo-50"
+                          onClick={() => handleOpenShiftModal(entry)}
+                          title="Xem/Sửa chi tiết chấm công"
+                        >
+                          <CalendarClock className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    </td>
+                  )}
+                  {visibleColumns.rate && (
+                    <td className="px-2 py-2 text-right border-r font-mono text-slate-500">
+                      {entry.salaryType === "fixed" ? (
+                        <div
+                          className="cursor-help text-xs"
+                          title={`Lương cứng: ${entry.fixedSalary?.toLocaleString()}đ\nĐịnh mức: ${
+                            entry.standardHours
+                          }h\nOT: ${entry.hourlyRate.toLocaleString()}đ/h`}
+                        >
+                          <span className="font-bold text-blue-600">Fixed</span>
+                          <div className="text-[10px]">
+                            {entry.hourlyRate.toLocaleString()} (OT)
+                          </div>
+                        </div>
                       ) : (
-                        <span className="text-slate-400 text-xs italic pl-2">
-                          + Thêm
-                        </span>
+                        <InputMoney
+                          value={entry.hourlyRate}
+                          set={(val) =>
+                            handleUpdateById(entry.id!, "hourlyRate", val)
+                          }
+                          className="h-8 border-transparent bg-transparent shadow-none text-right px-1"
+                        />
                       )}
-                    </div>
-                  </td>
-                  <td className="px-4 py-2 text-right border-r font-bold text-emerald-700">
-                    <div className="flex items-center justify-end gap-2">
-                      {savingId === entry.id && (
-                        <Loader2 className="w-3 h-3 animate-spin text-emerald-500" />
-                      )}
-                      {entry.salary?.toLocaleString()} ₫
-                    </div>
-                  </td>
-                  <td className="px-2 py-2">
-                    <input
-                      type="text"
-                      className="w-full bg-transparent focus:outline-none focus:ring-1 focus:ring-emerald-500 rounded px-1 py-1 text-slate-600 italic text-xs"
-                      value={entry.note || ""}
-                      onChange={(e) =>
-                        handleUpdateById(entry.id!, "note", e.target.value)
-                      }
-                      placeholder="Ghi chú..."
-                    />
-                  </td>
+                    </td>
+                  )}
+                  {visibleColumns.bonus && (
+                    <td className="px-2 py-2 border-r">
+                      <input
+                        type="number"
+                        className="w-full text-right bg-transparent focus:outline-none focus:ring-1 focus:ring-emerald-500 rounded px-1 py-1"
+                        value={entry.weekendHours || ""}
+                        onChange={(e) =>
+                          handleUpdateById(
+                            entry.id!,
+                            "weekendHours",
+                            e.target.value
+                          )
+                        }
+                        placeholder="0"
+                      />
+                    </td>
+                  )}
+                  {visibleColumns.allowance && (
+                    <td
+                      className="px-2 py-2 border-r cursor-pointer hover:bg-slate-100 transition-colors"
+                      onClick={() => openAllowanceModal(entry)}
+                    >
+                      <div className="flex flex-wrap gap-1">
+                        {entry.allowances && entry.allowances.length > 0 ? (
+                          entry.allowances.map((a, i) => (
+                            <span
+                              key={i}
+                              className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-700 cursor-help"
+                              title={`${
+                                a.name
+                              }: ${a.amount.toLocaleString()} ₫`}
+                            >
+                              {a.name}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-slate-400 text-xs italic pl-2">
+                            + Thêm
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                  )}
+                  {visibleColumns.total && (
+                    <td className="px-4 py-2 text-right border-r font-bold text-emerald-700">
+                      <div className="flex items-center justify-end gap-2">
+                        {savingId === entry.id && (
+                          <Loader2 className="w-3 h-3 animate-spin text-emerald-500" />
+                        )}
+                        {entry.salary?.toLocaleString()} ₫
+                      </div>
+                    </td>
+                  )}
+                  {visibleColumns.note && (
+                    <td className="px-2 py-2">
+                      <input
+                        type="text"
+                        className="w-full bg-transparent focus:outline-none focus:ring-1 focus:ring-emerald-500 rounded px-1 py-1 text-slate-600 italic text-xs"
+                        value={entry.note || ""}
+                        onChange={(e) =>
+                          handleUpdateById(entry.id!, "note", e.target.value)
+                        }
+                        placeholder="Ghi chú..."
+                      />
+                    </td>
+                  )}
                 </tr>
               ))}
               <tr>
-                <td colSpan={8} className="p-2 bg-slate-50 border-t">
+                <td
+                  colSpan={Object.values(visibleColumns).filter(Boolean).length}
+                  className="p-2 bg-slate-50 border-t"
+                >
                   <Button
                     variant="ghost"
                     size="sm"
@@ -640,13 +930,30 @@ export default function PayrollDetail({
             </tbody>
             <tfoot className="bg-slate-50 font-bold border-t sticky bottom-0 z-10">
               <tr>
-                <td colSpan={6} className="px-4 py-3 text-right">
-                  TỔNG CỘNG:
-                </td>
-                <td className="px-4 py-3 text-right text-emerald-700 border-r">
-                  {grandTotal.toLocaleString()} ₫
-                </td>
-                <td></td>
+                {visibleColumns.name && (
+                  <td colSpan={2} className="px-4 py-3 text-right"></td>
+                )}
+                {visibleColumns.role && (
+                  <td className="px-4 py-3 text-right">TỔNG CỘNG:</td>
+                )}
+                {visibleColumns.hours && (
+                  <td className="px-4 py-3 text-right font-bold border-r"></td>
+                )}
+                {visibleColumns.rate && (
+                  <td className="px-4 py-3 text-right font-bold border-r"></td>
+                )}
+                {visibleColumns.bonus && (
+                  <td className="px-4 py-3 text-right font-bold border-r"></td>
+                )}
+                {visibleColumns.allowance && (
+                  <td className="px-4 py-3 text-right font-bold border-r"></td>
+                )}
+                {visibleColumns.total && (
+                  <td className="px-4 py-3 text-right text-emerald-700 border-r">
+                    {grandTotal.toLocaleString()} ₫
+                  </td>
+                )}
+                {visibleColumns.note && <td></td>}
               </tr>
             </tfoot>
           </table>
@@ -829,6 +1136,16 @@ export default function PayrollDetail({
           </div>
         </div>
       )}
+
+      {/* SHIFT DETAIL MODAL */}
+      <ShiftDetailModal
+        isOpen={shiftModalOpen}
+        onClose={() => setShiftModalOpen(false)}
+        onSave={handleSaveShifts}
+        employeeName={currentShiftEntry?.employeeName || ""}
+        employeeId={currentShiftEntry?.employeeId || ""}
+        initialShifts={currentShiftEntry?.shifts || []}
+      />
     </div>
   );
 }
