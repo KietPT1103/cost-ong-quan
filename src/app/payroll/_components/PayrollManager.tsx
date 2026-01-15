@@ -8,6 +8,7 @@ import {
   deletePayroll,
 } from "@/services/payrolls.firebase";
 import { getEmployees } from "@/services/employees.firebase";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Plus, Table2, CalendarDays, ExternalLink, Trash2 } from "lucide-react";
@@ -23,6 +24,7 @@ export default function PayrollManager({
   const [payrolls, setPayrolls] = useState<Payroll[]>([]);
   const [newPayrollName, setNewPayrollName] = useState("");
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     loadPayrolls();
@@ -69,6 +71,10 @@ export default function PayrollManager({
     }
   }
 
+  function handleImport() {
+    router.push("/timesheet");
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row gap-4 items-end bg-white p-4 rounded-lg border shadow-sm">
@@ -89,6 +95,14 @@ export default function PayrollManager({
             >
               <Plus className="w-4 h-4" />
               Tạo mới
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleImport}
+              className="gap-2 shrink-0 text-indigo-600 border-indigo-200 hover:bg-indigo-50"
+            >
+              <ExternalLink className="w-4 h-4" />
+              Import Chấm Công
             </Button>
           </div>
         </div>

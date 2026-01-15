@@ -2,11 +2,47 @@
 
 import ShiftDetailModal, { Shift } from "./ShiftDetailModal";
 import React, { useState } from "react";
-import { Button } from "@/components/ui/Button"; // Assuming Button exists
-import { Input } from "@/components/ui/Input"; // Assuming Input exists
-import { Card } from "@/components/ui/Card"; // Assuming Card exists
-import * as XLSX from "xlsx"; // Useful if we want to export, or just parse text manually.
-import { Save, Upload, FileText, Calculator } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Card } from "@/components/ui/Card";
+import * as XLSX from "xlsx";
+import {
+  Save,
+  Upload,
+  FileText,
+  Calculator,
+  ArrowLeft,
+  Search,
+  Trash2,
+  X,
+} from "lucide-react";
+import { getEmployees, Employee } from "@/services/employees.firebase";
+import { createPayroll, PayrollEntry } from "@/services/payrolls.firebase";
+import { useAuth } from "@/context/AuthContext";
+import { useStore } from "@/context/StoreContext";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { db } from "@/lib/firebase";
+import {
+  collection,
+  doc,
+  writeBatch,
+  serverTimestamp,
+} from "firebase/firestore";
+
+const ROLE_GROUPS: Record<string, string[]> = {
+  Cafe: ["Phục vụ", "Pha chế", "Thu ngân"],
+  Bếp: ["Bếp", "Thu ngân bếp", "Phục vụ bếp", "Rửa chén"],
+  Farm: [
+    "Chăm sóc thú",
+    "Thú Y",
+    "Thu ngân farm",
+    "Soát vé",
+    "Thời vụ",
+    "Bán hàng",
+  ],
+  Chung: ["Leader", "MKT"],
+};
 
 interface TimesheetRow {
   No: string;
@@ -28,8 +64,12 @@ interface ProcessedShift {
 }
 
 interface EmployeeSummary {
+  dbId?: string;
   Name: string;
   EnNo: string;
+  Role: string; // New field
+  Allowance: number; // New field
+  Note: string; // New field
   TotalHours: number;
   WeekendHours: number;
   SalaryPerHour: number;
@@ -56,6 +96,19 @@ export default function TimesheetPage() {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedEmpIndex, setSelectedEmpIndex] = useState<number | null>(null);
+
+  // New State for DB integration
+  const [dbEmployees, setDbEmployees] = useState<Employee[]>([]);
+  const { storeId, storeName } = useStore();
+  const { user } = useAuth();
+  const router = useRouter();
+
+  // Fetch employees on mount
+  React.useEffect(() => {
+    if (storeId) {
+      getEmployees(storeId).then(setDbEmployees);
+    }
+  }, [storeId]);
 
   const filteredData = summaryData.filter(
     (emp) =>
@@ -116,9 +169,12 @@ export default function TimesheetPage() {
     // Recalculate salary automatically
     const salaryRate = newSummary[index].SalaryPerHour;
     const weekendHours = newSummary[index].WeekendHours;
-    // Base salary + 1000 extra per weekend hour
+    // Base salary + 1000 extra per weekend hour + allowance
+    const allowance = newSummary[index].Allowance || 0;
     const total =
-      newSummary[index].TotalHours * salaryRate + weekendHours * 1000;
+      newSummary[index].TotalHours * salaryRate +
+      weekendHours * 1000 +
+      allowance;
     newSummary[index].TotalSalary = Math.round(total / 1000) * 1000;
 
     setSummaryData(newSummary);
@@ -231,25 +287,55 @@ export default function TimesheetPage() {
           }
         }
 
+        const matchedDbEmp = dbEmployees.find(
+          (dbE) =>
+            dbE.name.toLowerCase() === name.toLowerCase() ||
+            (rows[0]?.EnNo && dbE.name.includes(rows[0].EnNo)) // loosen match
+        );
+
         summaries.push({
+          dbId: matchedDbEmp?.id,
           Name: name,
           EnNo: rows[0]?.EnNo || "",
+          Role: matchedDbEmp?.role || "",
+          Allowance: 0,
+          Note: "",
           TotalHours: parseFloat(totalHours.toFixed(2)),
           WeekendHours: parseFloat(weekendHours.toFixed(2)),
-          SalaryPerHour: 0,
-          TotalSalary: 0,
+          SalaryPerHour: matchedDbEmp ? matchedDbEmp.hourlyRate : 15000,
+          TotalSalary: 0, // Will be recalc-ed immediately or next loop?
+          // We should calc it here or let useEffect/handler handle?
+          // Let's calc initial
           Errors: errors,
           Shifts: shifts,
         });
       });
 
-      setSummaryData(summaries);
+      // Initial salary calc after population
+      const FinalSummaries = summaries.map((s) => {
+        const total =
+          s.TotalHours * s.SalaryPerHour + s.WeekendHours * 1000 + s.Allowance;
+        return {
+          ...s,
+          TotalSalary: Math.round(total / 1000) * 1000,
+        };
+      });
+
+      // Sort by Role
+      FinalSummaries.sort((a, b) => (a.Role || "").localeCompare(b.Role || ""));
+
+      setSummaryData(FinalSummaries);
     } catch (err) {
       console.error(err);
       setError("Có lỗi xảy ra khi xử lý file.");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRemoveEmployee = (empNo: string) => {
+    if (!confirm("Bạn có chắc muốn xóa nhân viên này khỏi báo cáo?")) return;
+    setSummaryData((prev) => prev.filter((item) => item.EnNo !== empNo));
   };
 
   const handleSalaryChange = (index: number, value: string) => {
@@ -266,7 +352,9 @@ export default function TimesheetPage() {
     // If they want separate weekend pay, they can ask.
     // Total Salary = (Total Hours * Rate) + (Weekend Hours * 1000)
     const weekendHours = newSummary[index].WeekendHours;
-    const total = newSummary[index].TotalHours * salary + weekendHours * 1000;
+    const allowance = newSummary[index].Allowance || 0;
+    const total =
+      newSummary[index].TotalHours * salary + weekendHours * 1000 + allowance;
     newSummary[index].TotalSalary = Math.round(total / 1000) * 1000;
     setSummaryData(newSummary);
   };
@@ -284,9 +372,21 @@ export default function TimesheetPage() {
     let newErrors: string[] = [];
 
     updatedShifts.forEach((s) => {
-      if (s.isValid && s.hours > 0) {
-        newTotal += s.hours;
-        if (s.isWeekend) newWeekend += s.hours;
+      // Calculate raw hours from inTime/outTime for precision
+      let rawHours = 0;
+      if (s.inTime && s.outTime) {
+        const start = new Date(s.inTime);
+        let end = new Date(s.outTime);
+        if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
+          if (end <= start) end = new Date(end.getTime() + 24 * 60 * 60 * 1000);
+          const diff = end.getTime() - start.getTime();
+          rawHours = diff / (1000 * 60 * 60);
+        }
+      }
+
+      if (s.isValid && rawHours > 0) {
+        newTotal += rawHours;
+        if (s.isWeekend) newWeekend += rawHours;
       } else {
         if (!s.isValid) {
           newErrors.push(`Lỗi/Thiếu: ${s.date} ${s.inTime || "?"}`);
@@ -298,10 +398,117 @@ export default function TimesheetPage() {
     emp.WeekendHours = parseFloat(newWeekend.toFixed(2));
     emp.Errors = newErrors;
 
-    const total = emp.TotalHours * emp.SalaryPerHour + emp.WeekendHours * 1000;
+    const total =
+      emp.TotalHours * emp.SalaryPerHour +
+      emp.WeekendHours * 1000 +
+      (emp.Allowance || 0);
     emp.TotalSalary = Math.round(total / 1000) * 1000;
 
     setSummaryData(newSummary);
+  };
+
+  const handleRoleChange = (index: number, value: string) => {
+    const newSummary = [...summaryData];
+    newSummary[index].Role = value;
+    setSummaryData(newSummary);
+  };
+
+  const handleAllowanceChange = (index: number, value: string) => {
+    const newSummary = [...summaryData];
+    const val = parseFloat(value) || 0;
+    newSummary[index].Allowance = val;
+
+    // Recalc total
+    const total =
+      newSummary[index].TotalHours * newSummary[index].SalaryPerHour +
+      newSummary[index].WeekendHours * 1000 +
+      val;
+    newSummary[index].TotalSalary = Math.round(total / 1000) * 1000;
+
+    setSummaryData(newSummary);
+  };
+
+  const handleNoteChange = (index: number, value: string) => {
+    const newSummary = [...summaryData];
+    newSummary[index].Note = value;
+    setSummaryData(newSummary);
+  };
+
+  const handleSaveToDB = async () => {
+    if (!storeId) return;
+    if (summaryData.length === 0) return;
+
+    setLoading(true);
+    try {
+      const payrollName = `Bảng lương ${startDate} - ${endDate}`;
+      const batch = writeBatch(db);
+
+      const payrollRef = doc(collection(db, "payrolls"));
+      batch.set(payrollRef, {
+        storeId,
+        name: payrollName,
+        status: "draft",
+        createdAt: serverTimestamp(),
+      });
+
+      for (const emp of summaryData) {
+        let employeeId = emp.dbId;
+
+        if (employeeId) {
+          // Update existing employee info (Salary/Role)
+          const empRef = doc(db, "employees", employeeId);
+          batch.update(empRef, {
+            hourlyRate: emp.SalaryPerHour,
+            role: emp.Role,
+          });
+        } else {
+          // Create new employee
+          const newEmpRef = doc(collection(db, "employees"));
+          batch.set(newEmpRef, {
+            storeId,
+            name: emp.Name,
+            role: emp.Role || "Nhân viên",
+            hourlyRate: emp.SalaryPerHour,
+            createdAt: serverTimestamp(),
+          });
+          employeeId = newEmpRef.id;
+        }
+
+        const entryRef = doc(collection(db, "payroll_entries"));
+        const entryData: PayrollEntry = {
+          payrollId: payrollRef.id,
+          employeeId: employeeId || "unknown",
+          employeeName: emp.Name,
+          role: emp.Role || "Nhân viên",
+          hourlyRate: emp.SalaryPerHour,
+          totalHours: emp.TotalHours,
+          weekendHours: emp.WeekendHours,
+          salary: emp.TotalSalary,
+          allowances:
+            emp.Allowance > 0
+              ? [{ name: "Phụ cấp", amount: emp.Allowance }]
+              : [],
+          note: emp.Note,
+          salaryType: "hourly",
+          fixedSalary: 0,
+          standardHours: 0,
+        };
+        batch.set(entryRef, entryData);
+      }
+
+      await batch.commit();
+      alert("Đã lưu bảng lương thành công!");
+      router.push("/payroll");
+    } catch (e) {
+      console.error(e);
+      setError("Lỗi khi lưu vào CSDL");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBack = () => {
+    router.push("/payroll");
   };
 
   const openShiftModal = (index: number) => {
@@ -334,9 +541,14 @@ export default function TimesheetPage() {
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-          Tính Lương & Giờ Làm (Timesheet)
-        </h1>
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={handleBack}>
+            <ArrowLeft className="w-5 h-5 text-slate-500" />
+          </Button>
+          <h1 className="text-3xl font-bold bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+            Tính Lương & Giờ Làm (Import)
+          </h1>
+        </div>
       </div>
 
       <Card className="p-6 grid grid-cols-1 md:grid-cols-4 gap-4 items-end bg-white/50 backdrop-blur-sm shadow-xl border-t border-white/20">
@@ -425,6 +637,14 @@ export default function TimesheetPage() {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm("")}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700"
+                  >
+                    <X size={16} />
+                  </button>
+                )}
               </div>
               <Button
                 variant="outline"
@@ -432,6 +652,12 @@ export default function TimesheetPage() {
                 className="border-green-600 text-green-700 hover:bg-green-50 shrink-0"
               >
                 <Save className="mr-2 h-4 w-4" /> Xuất Excel
+              </Button>
+              <Button
+                onClick={handleSaveToDB}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-200 shrink-0"
+              >
+                <Save className="mr-2 h-4 w-4" /> Lưu Vào CSDL
               </Button>
             </div>
           </div>
@@ -443,18 +669,20 @@ export default function TimesheetPage() {
                   <tr>
                     <th className="px-6 py-3 bg-gray-50">Mã NV</th>
                     <th className="px-6 py-3 bg-gray-50">Tên Nhân Viên</th>
+                    <th className="px-6 py-3 bg-gray-50">Vai Trò</th>
                     <th className="px-6 py-3 text-right bg-gray-50">
                       Tổng Giờ Làm
                     </th>
                     <th className="px-6 py-3 text-right text-indigo-600 bg-gray-50">
                       Giờ Cuối Tuần
                     </th>
-                    <th className="px-6 py-3 text-right w-40 bg-gray-50">
-                      Lương/Giờ (VND)
+                    <th className="px-6 py-3 text-right w-32 bg-gray-50">
+                      Lương/Giờ
                     </th>
                     <th className="px-6 py-3 text-right font-bold text-green-700 bg-gray-50">
-                      Tổng Lương (Dự Tính)
+                      Tổng Lương
                     </th>
+                    <th className="px-6 py-3 bg-gray-50 w-10"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -500,6 +728,27 @@ export default function TimesheetPage() {
                           {emp.Name}
                         </span>
                       </td>
+                      <td className="px-6 py-4">
+                        <select
+                          className="w-full border p-1 rounded text-xs bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                          value={emp.Role || ""}
+                          onChange={(e) =>
+                            handleRoleChange(index, e.target.value)
+                          }
+                        >
+                          <option value="">-- Chọn --</option>
+                          {Object.entries(ROLE_GROUPS).map(([group, roles]) => (
+                            <optgroup key={group} label={group}>
+                              {roles.map((role) => (
+                                <option key={role} value={role}>
+                                  {role}
+                                </option>
+                              ))}
+                            </optgroup>
+                          ))}
+                        </select>
+                      </td>
+
                       <td className="px-6 py-4 text-right">
                         <input
                           type="number"
@@ -542,34 +791,44 @@ export default function TimesheetPage() {
                       <td className="px-6 py-4 text-right font-bold text-green-700 font-mono">
                         {emp.TotalSalary.toLocaleString("vi-VN")} đ
                       </td>
+                      <td className="px-6 py-4 text-center">
+                        <button
+                          onClick={() => handleRemoveEmployee(emp.EnNo)}
+                          className="text-gray-400 hover:text-red-600 transition-colors p-1"
+                          title="Xóa nhân viên này"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
-                <tfoot className="bg-gray-100 font-semibold text-gray-900 sticky bottom-0 z-10 shadow-[0_-1px_3px_rgba(0,0,0,0.1)]">
-                  <tr>
+                <tfoot className="bg-indigo-50 font-bold text-gray-900 sticky bottom-0 z-10 shadow-[0_-2px_10px_rgba(0,0,0,0.1)] border-t-2 border-indigo-100">
+                  <tr className="text-base">
                     <td
-                      colSpan={2}
-                      className="px-6 py-3 text-center bg-gray-100"
+                      colSpan={3}
+                      className="px-6 py-4 text-center text-indigo-800 uppercase tracking-wider"
                     >
                       Tổng Cộng
                     </td>
-                    <td className="px-6 py-3 text-right bg-gray-100">
+                    <td className="px-6 py-4 text-right">
                       {filteredData
                         .reduce((acc, curr) => acc + curr.TotalHours, 0)
-                        .toLocaleString("vi-VN")}
+                        .toLocaleString("vi-VN", { maximumFractionDigits: 2 })}
                     </td>
-                    <td className="px-6 py-3 text-right bg-gray-100">
+                    <td className="px-6 py-4 text-right text-indigo-700">
                       {filteredData
                         .reduce((acc, curr) => acc + curr.WeekendHours, 0)
-                        .toLocaleString("vi-VN")}
+                        .toLocaleString("vi-VN", { maximumFractionDigits: 2 })}
                     </td>
-                    <td className="bg-gray-100"></td>
-                    <td className="px-6 py-3 text-right bg-gray-100">
+                    <td className="bg-transparent"></td>
+                    <td className="px-6 py-4 text-right text-lg text-green-700">
                       {filteredData
                         .reduce((acc, curr) => acc + curr.TotalSalary, 0)
                         .toLocaleString("vi-VN")}{" "}
                       đ
                     </td>
+                    <td className="bg-transparent"></td>
                   </tr>
                 </tfoot>
               </table>

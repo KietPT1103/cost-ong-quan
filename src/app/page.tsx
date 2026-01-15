@@ -242,15 +242,6 @@ export default function HomePage() {
                 Tính lương
               </Button>
             </Link>
-            <Link href="/timesheet">
-              <Button
-                variant="outline"
-                className="gap-2 hover:bg-slate-50 border-slate-200 text-slate-700"
-              >
-                <FileText className="w-4 h-4 text-cyan-600" />
-                Chấm công (File)
-              </Button>
-            </Link>
 
             {/* <div className="w-px h-8 bg-slate-200 mx-2 hidden sm:block"></div>
 

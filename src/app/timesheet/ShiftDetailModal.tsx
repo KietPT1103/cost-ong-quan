@@ -196,6 +196,15 @@ export default function ShiftDetailModal({
     return parseFloat((diff / (1000 * 60 * 60)).toFixed(2));
   };
 
+  const calculateRawHours = (inTime: string, outTime: string) => {
+    const start = new Date(inTime);
+    let end = new Date(outTime);
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) return 0;
+    if (end <= start) end = new Date(end.getTime() + 24 * 60 * 60 * 1000);
+    const diff = end.getTime() - start.getTime();
+    return diff / (1000 * 60 * 60);
+  };
+
   const handleAddShift = () => {
     const newShift: Shift = {
       id: Date.now().toString(),
@@ -490,7 +499,7 @@ export default function ShiftDetailModal({
                 <b>
                   {shifts
                     .reduce(
-                      (acc, s) => acc + calculateHours(s.inTime, s.outTime),
+                      (acc, s) => acc + calculateRawHours(s.inTime, s.outTime),
                       0
                     )
                     .toFixed(2)}
