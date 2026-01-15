@@ -234,6 +234,9 @@ export default function PayrollDetail({
       0
     );
 
+    // Use exact hours for calculation
+    // Rounding only leads to inaccuracies (e.g. 72.32h should be paid exactly)
+
     let rawSalary = 0;
 
     if (entry.salaryType === "fixed") {
@@ -252,14 +255,14 @@ export default function PayrollDetail({
 
       rawSalary = fixedSalary + otPay + weekendBonus + totalAllowance;
     } else {
-      // Hourly Logic (Old)
+      // Hourly Logic
       rawSalary =
-        entry.totalHours * entry.hourlyRate +
-        entry.weekendHours * 1000 +
+        (entry.totalHours || 0) * entry.hourlyRate +
+        (entry.weekendHours || 0) * 1000 +
         totalAllowance;
     }
 
-    // Round up to nearest 1000
+    // Round up to nearest 1000 (e.g. 10100 -> 11000)
     return Math.ceil(rawSalary / 1000) * 1000;
   };
 
@@ -911,22 +914,26 @@ export default function PayrollDetail({
                   )}
                 </tr>
               ))}
-              <tr>
-                <td
-                  colSpan={Object.values(visibleColumns).filter(Boolean).length}
-                  className="p-2 bg-slate-50 border-t"
-                >
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleAddEntry}
-                    className="w-full text-slate-500 hover:text-emerald-600 border border-dashed border-slate-300 hover:border-emerald-500 hover:bg-emerald-50 gap-2"
+              {!searchTerm && (
+                <tr>
+                  <td
+                    colSpan={
+                      Object.values(visibleColumns).filter(Boolean).length
+                    }
+                    className="p-2 bg-slate-50 border-t"
                   >
-                    <Plus className="w-4 h-4" />
-                    Thêm nhân viên vào bảng lương này
-                  </Button>
-                </td>
-              </tr>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleAddEntry}
+                      className="w-full text-slate-500 hover:text-emerald-600 border border-dashed border-slate-300 hover:border-emerald-500 hover:bg-emerald-50 gap-2"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Thêm nhân viên vào bảng lương này
+                    </Button>
+                  </td>
+                </tr>
+              )}
             </tbody>
             <tfoot className="bg-slate-50 font-bold border-t sticky bottom-0 z-10">
               <tr>
