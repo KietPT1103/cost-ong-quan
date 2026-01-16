@@ -6,12 +6,22 @@ import {
   createPayroll,
   Payroll,
   deletePayroll,
+  updatePayroll,
 } from "@/services/payrolls.firebase";
 import { getEmployees } from "@/services/employees.firebase";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Plus, Table2, CalendarDays, ExternalLink, Trash2 } from "lucide-react";
+import {
+  Plus,
+  Table2,
+  CalendarDays,
+  ExternalLink,
+  Trash2,
+  Edit2,
+  Check,
+  X,
+} from "lucide-react";
 import { Card, CardContent } from "@/components/ui/Card";
 
 export default function PayrollManager({
@@ -24,6 +34,8 @@ export default function PayrollManager({
   const [payrolls, setPayrolls] = useState<Payroll[]>([]);
   const [newPayrollName, setNewPayrollName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
   const router = useRouter();
 
   useEffect(() => {
@@ -69,6 +81,23 @@ export default function PayrollManager({
       console.error(e);
       alert("Lỗi khi xóa");
     }
+  }
+
+  async function handleUpdateName(id: string) {
+    if (!editName.trim()) return;
+    try {
+      await updatePayroll(id, { name: editName });
+      await loadPayrolls();
+      setEditingId(null);
+    } catch (error) {
+      console.error(error);
+      alert("Lỗi khi đổi tên");
+    }
+  }
+
+  function startEditing(p: Payroll) {
+    setEditingId(p.id!);
+    setEditName(p.name);
   }
 
   function handleImport() {
@@ -120,9 +149,38 @@ export default function PayrollManager({
                 <Table2 className="w-6 h-6" />
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors">
-                  {p.name}
-                </h3>
+                {editingId === p.id ? (
+                  <div
+                    className="flex items-center gap-2 mb-2"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Input
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      className="h-8"
+                      autoFocus
+                    />
+                    <Button
+                      size="icon"
+                      className="h-8 w-8 shrink-0"
+                      onClick={() => handleUpdateName(p.id!)}
+                    >
+                      <Check className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8 shrink-0"
+                      onClick={() => setEditingId(null)}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <h3 className="font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors pr-8">
+                    {p.name}
+                  </h3>
+                )}
                 <div className="flex items-center gap-2 text-sm text-slate-500 mt-1">
                   <CalendarDays className="w-3.5 h-3.5" />
                   {p.createdAt?.toDate
@@ -142,15 +200,26 @@ export default function PayrollManager({
                   <ExternalLink className="w-4 h-4 text-slate-300 group-hover:text-indigo-500" />
                 </div>
               </div>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (p.id) handleDelete(p.id);
-                }}
-                className="absolute top-2 right-2 p-2 text-slate-300 hover:text-red-500 transition-colors"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+              <div className="absolute top-2 right-2 flex opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    startEditing(p);
+                  }}
+                  className="p-2 text-slate-300 hover:text-blue-500 transition-colors"
+                >
+                  <Edit2 className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (p.id) handleDelete(p.id);
+                  }}
+                  className="p-2 text-slate-300 hover:text-red-500 transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
             </CardContent>
           </Card>
         ))}

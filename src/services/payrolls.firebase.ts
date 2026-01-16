@@ -129,6 +129,10 @@ export async function deletePayroll(payrollId: string) {
   await batch.commit();
 }
 
+export async function updatePayroll(id: string, data: Partial<Payroll>) {
+  await updateDoc(doc(db, PAYROLLS_COLLECTION, id), data);
+}
+
 // --- ENTRIES ---
 
 export async function getPayrollEntries(

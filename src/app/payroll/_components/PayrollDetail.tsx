@@ -8,6 +8,7 @@ import {
   deletePayrollEntry,
   PayrollEntry,
 } from "@/services/payrolls.firebase";
+import { updateEmployee } from "@/services/employees.firebase";
 import { Input } from "@/components/ui/Input";
 import {
   ArrowLeft,
@@ -56,6 +57,30 @@ export default function PayrollDetail({
     note: true,
   });
   const [showColumnSelector, setShowColumnSelector] = useState(false);
+  const [hasLoadedSettings, setHasLoadedSettings] = useState(false);
+
+  // Load settings from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem("payroll_visible_columns");
+    if (saved) {
+      try {
+        setVisibleColumns(JSON.parse(saved));
+      } catch (e) {
+        console.error("Failed to parse visible columns settings", e);
+      }
+    }
+    setHasLoadedSettings(true);
+  }, []);
+
+  // Save settings to localStorage
+  useEffect(() => {
+    if (hasLoadedSettings) {
+      localStorage.setItem(
+        "payroll_visible_columns",
+        JSON.stringify(visibleColumns)
+      );
+    }
+  }, [visibleColumns, hasLoadedSettings]);
 
   // Allowance Modal State
   const [selectedEntryIndex, setSelectedEntryIndex] = useState<number | null>(
@@ -122,11 +147,37 @@ export default function PayrollDetail({
 
   // Auto-save debounce function
   const debouncedUpdate = useCallback(
-    debounce(async (id: string, data: Partial<PayrollEntry>) => {
-      setSavingId(id);
-      await updatePayrollEntry(id, data);
-      setSavingId(null);
-    }, 1000),
+    debounce(
+      async (
+        id: string,
+        employeeId: string,
+        data: Partial<PayrollEntry>,
+        shouldSyncEmployee: boolean
+      ) => {
+        setSavingId(id);
+        await updatePayrollEntry(id, data);
+
+        // Sync with Employee Record if needed
+        if (
+          shouldSyncEmployee &&
+          employeeId &&
+          !employeeId.startsWith("manual_")
+        ) {
+          try {
+            await updateEmployee(employeeId, {
+              role: data.role,
+              hourlyRate: data.hourlyRate,
+            });
+            console.log("Synced employee info", employeeId);
+          } catch (error) {
+            console.error("Failed to sync employee info", error);
+          }
+        }
+
+        setSavingId(null);
+      },
+      1000
+    ),
     []
   );
 
@@ -297,19 +348,26 @@ export default function PayrollDetail({
     setEntries(newEntries);
 
     // Trigger auto-save
-    debouncedUpdate(id, {
-      totalHours: entry.totalHours,
-      weekendHours: entry.weekendHours,
-      salary: entry.salary,
-      note: entry.note,
-      employeeName: entry.employeeName,
-      role: entry.role,
-      hourlyRate: entry.hourlyRate,
-      allowances: entry.allowances || [],
-      salaryType: entry.salaryType,
-      fixedSalary: entry.fixedSalary,
-      standardHours: entry.standardHours,
-    });
+    // Trigger auto-save
+    const isSyncField = field === "role" || field === "hourlyRate";
+    debouncedUpdate(
+      id,
+      entry.employeeId,
+      {
+        totalHours: entry.totalHours,
+        weekendHours: entry.weekendHours,
+        salary: entry.salary,
+        note: entry.note,
+        employeeName: entry.employeeName,
+        role: entry.role,
+        hourlyRate: entry.hourlyRate,
+        allowances: entry.allowances || [],
+        salaryType: entry.salaryType,
+        fixedSalary: entry.fixedSalary,
+        standardHours: entry.standardHours,
+      },
+      isSyncField
+    );
   };
 
   const openAllowanceModal = (entry: PayrollEntry) => {
@@ -371,12 +429,17 @@ export default function PayrollDetail({
     newEntries[index] = entry;
     setEntries(newEntries);
 
-    debouncedUpdate(settingsEntryId, {
-      salaryType: entry.salaryType,
-      fixedSalary: entry.fixedSalary,
-      standardHours: entry.standardHours,
-      salary: entry.salary,
-    });
+    debouncedUpdate(
+      settingsEntryId,
+      entry.employeeId,
+      {
+        salaryType: entry.salaryType,
+        fixedSalary: entry.fixedSalary,
+        standardHours: entry.standardHours,
+        salary: entry.salary,
+      },
+      false
+    );
 
     setSettingsEntryId(null);
   };
@@ -424,6 +487,14 @@ export default function PayrollDetail({
   };
 
   const grandTotal = entries.reduce((sum, e) => sum + (e.salary || 0), 0);
+  const colSpanBeforeTotal = [
+    visibleColumns.name,
+    visibleColumns.role,
+    visibleColumns.hours,
+    visibleColumns.rate,
+    visibleColumns.bonus,
+    visibleColumns.allowance,
+  ].filter(Boolean).length;
 
   const RoleSelect = ({ value, onChange, className }: any) => (
     <select className={className} value={value} onChange={onChange}>
@@ -797,7 +868,7 @@ export default function PayrollDetail({
                     <td className="px-2 py-2 border-r relative group/cell">
                       <input
                         type="number"
-                        className="w-full text-right bg-transparent focus:outline-none focus:ring-1 focus:ring-emerald-500 rounded px-1 py-1 pr-7"
+                        className="w-full text-right bg-transparent focus:outline-none focus:ring-1 focus:ring-emerald-500 rounded px-1 py-1 pr-7 no-spin"
                         value={entry.totalHours || ""}
                         onChange={(e) =>
                           handleUpdateById(
@@ -841,7 +912,7 @@ export default function PayrollDetail({
                           set={(val) =>
                             handleUpdateById(entry.id!, "hourlyRate", val)
                           }
-                          className="h-8 border-transparent bg-transparent shadow-none text-right px-1"
+                          className="h-8 border-transparent bg-transparent shadow-none text-right px-1 no-spin"
                         />
                       )}
                     </td>
@@ -850,7 +921,7 @@ export default function PayrollDetail({
                     <td className="px-2 py-2 border-r">
                       <input
                         type="number"
-                        className="w-full text-right bg-transparent focus:outline-none focus:ring-1 focus:ring-emerald-500 rounded px-1 py-1"
+                        className="w-full text-right bg-transparent focus:outline-none focus:ring-1 focus:ring-emerald-500 rounded px-1 py-1 no-spin"
                         value={entry.weekendHours || ""}
                         onChange={(e) =>
                           handleUpdateById(
@@ -937,23 +1008,13 @@ export default function PayrollDetail({
             </tbody>
             <tfoot className="bg-slate-50 font-bold border-t sticky bottom-0 z-10">
               <tr>
-                {visibleColumns.name && (
-                  <td colSpan={2} className="px-4 py-3 text-right"></td>
-                )}
-                {visibleColumns.role && (
-                  <td className="px-4 py-3 text-right">TỔNG CỘNG:</td>
-                )}
-                {visibleColumns.hours && (
-                  <td className="px-4 py-3 text-right font-bold border-r"></td>
-                )}
-                {visibleColumns.rate && (
-                  <td className="px-4 py-3 text-right font-bold border-r"></td>
-                )}
-                {visibleColumns.bonus && (
-                  <td className="px-4 py-3 text-right font-bold border-r"></td>
-                )}
-                {visibleColumns.allowance && (
-                  <td className="px-4 py-3 text-right font-bold border-r"></td>
+                {colSpanBeforeTotal > 0 && (
+                  <td
+                    colSpan={colSpanBeforeTotal}
+                    className="px-4 py-3 text-right"
+                  >
+                    TỔNG CỘNG:
+                  </td>
                 )}
                 {visibleColumns.total && (
                   <td className="px-4 py-3 text-right text-emerald-700 border-r">
