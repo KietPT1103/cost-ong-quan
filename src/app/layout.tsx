@@ -26,6 +26,7 @@ export const metadata: Metadata = {
 
 import { AuthProvider } from "@/context/AuthContext";
 import { StoreProvider } from "@/context/StoreContext";
+import ModelSwitcher from "@/components/ModelSwitcher";
 
 export default function RootLayout({
   children,
@@ -38,7 +39,10 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <AuthProvider>
-          <StoreProvider>{children}</StoreProvider>
+          <StoreProvider>
+            {children}
+            <ModelSwitcher />
+          </StoreProvider>
         </AuthProvider>
       </body>
     </html>

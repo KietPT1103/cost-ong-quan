@@ -16,7 +16,7 @@ const StoreContext = createContext<StoreContextType>({
   storeName: "Mô hình Cafe",
 });
 
-const STORE_NAMES: Record<string, string> = {
+export const STORE_NAMES: Record<string, string> = {
   cafe: "Mô hình Cafe",
   restaurant: "Mô hình Lẩu",
   farm: "Mô hình Farm",
