@@ -196,11 +196,14 @@ export default function TimesheetPage() {
   };
 
   const handleHoursChange = (
-    index: number,
+    enNo: string,
     field: "TotalHours" | "WeekendHours",
     value: string
   ) => {
     const newSummary = [...summaryData];
+    const index = newSummary.findIndex((s) => s.EnNo === enNo);
+    if (index === -1) return;
+
     const val = parseFloat(value) || 0;
     newSummary[index][field] = val;
 
@@ -392,8 +395,11 @@ export default function TimesheetPage() {
     setSummaryData((prev) => prev.filter((item) => item.EnNo !== empNo));
   };
 
-  const handleSalaryChange = (index: number, value: string) => {
+  const handleSalaryChange = (enNo: string, value: string) => {
     const newSummary = [...summaryData];
+    const index = newSummary.findIndex((s) => s.EnNo === enNo);
+    if (index === -1) return;
+
     const salary = parseFloat(value) || 0;
     newSummary[index].SalaryPerHour = salary;
     // Calculate total salary
@@ -461,14 +467,19 @@ export default function TimesheetPage() {
     setSummaryData(newSummary);
   };
 
-  const handleRoleChange = (index: number, value: string) => {
+  const handleRoleChange = (enNo: string, value: string) => {
     const newSummary = [...summaryData];
+    const index = newSummary.findIndex((s) => s.EnNo === enNo);
+    if (index === -1) return;
     newSummary[index].Role = value;
     setSummaryData(newSummary);
   };
 
-  const handleAllowanceChange = (index: number, value: string) => {
+  const handleAllowanceChange = (enNo: string, value: string) => {
     const newSummary = [...summaryData];
+    const index = newSummary.findIndex((s) => s.EnNo === enNo);
+    if (index === -1) return;
+
     const val = parseFloat(value) || 0;
     newSummary[index].Allowance = val;
 
@@ -482,8 +493,10 @@ export default function TimesheetPage() {
     setSummaryData(newSummary);
   };
 
-  const handleNoteChange = (index: number, value: string) => {
+  const handleNoteChange = (enNo: string, value: string) => {
     const newSummary = [...summaryData];
+    const index = newSummary.findIndex((s) => s.EnNo === enNo);
+    if (index === -1) return;
     newSummary[index].Note = value;
     setSummaryData(newSummary);
   };
@@ -831,7 +844,7 @@ export default function TimesheetPage() {
                           className="w-full border p-1 rounded text-xs bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
                           value={emp.Role || ""}
                           onChange={(e) =>
-                            handleRoleChange(index, e.target.value)
+                            handleRoleChange(emp.EnNo, e.target.value)
                           }
                         >
                           <option value="">-- Chọn --</option>
@@ -850,11 +863,11 @@ export default function TimesheetPage() {
                       <td className="px-6 py-4 text-right">
                         <input
                           type="number"
-                          className="w-20 text-right border p-1 rounded font-mono focus:ring-2 focus:ring-blue-500"
+                          className="w-20 text-right border p-1 rounded font-mono focus:ring-2 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           value={emp.TotalHours}
                           onChange={(e) =>
                             handleHoursChange(
-                              index,
+                              emp.EnNo,
                               "TotalHours",
                               e.target.value
                             )
@@ -864,11 +877,11 @@ export default function TimesheetPage() {
                       <td className="px-6 py-4 text-right">
                         <input
                           type="number"
-                          className="w-20 text-right border p-1 rounded font-mono text-indigo-600 focus:ring-2 focus:ring-indigo-500"
+                          className="w-20 text-right border p-1 rounded font-mono text-indigo-600 focus:ring-2 focus:ring-indigo-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           value={emp.WeekendHours}
                           onChange={(e) =>
                             handleHoursChange(
-                              index,
+                              emp.EnNo,
                               "WeekendHours",
                               e.target.value
                             )
@@ -878,11 +891,11 @@ export default function TimesheetPage() {
                       <td className="px-6 py-4 text-right">
                         <input
                           type="number"
-                          className="w-full p-1 text-right border rounded focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                          className="w-full p-1 text-right border rounded focus:ring-2 focus:ring-blue-500 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           placeholder="0"
                           value={emp.SalaryPerHour || ""}
                           onChange={(e) =>
-                            handleSalaryChange(index, e.target.value)
+                            handleSalaryChange(emp.EnNo, e.target.value)
                           }
                         />
                       </td>

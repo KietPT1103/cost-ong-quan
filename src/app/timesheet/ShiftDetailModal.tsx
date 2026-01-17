@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { X, Plus, Trash2, Save, GripVertical } from "lucide-react";
+import { X, Plus, Trash2, Save, GripVertical, ArrowRightLeft } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
 // Helper constants for 24h time picker can be removed or kept if we switch back,
@@ -218,6 +218,34 @@ export default function ShiftDetailModal({
     setShifts([...shifts, newShift]);
   };
 
+  const handleAddShiftAt = (index: number) => {
+    const newShift: Shift = {
+      id: Date.now().toString(),
+      date: shifts[index]?.date || new Date().toLocaleDateString("ja-JP"),
+      inTime: "",
+      outTime: "",
+      hours: 0,
+      isWeekend: false,
+      isValid: true,
+    };
+    const newShifts = [...shifts];
+    newShifts.splice(index + 1, 0, newShift);
+    setShifts(newShifts);
+  };
+
+  const handleSwapTimes = (id: string) => {
+    setShifts((prev) =>
+      prev.map((s) => {
+        if (s.id !== id) return s;
+        return {
+          ...s,
+          inTime: s.outTime,
+          outTime: s.inTime,
+        };
+      })
+    );
+  };
+
   const handleDeleteShift = (id: string) => {
     setShifts(shifts.filter((s) => s.id !== id));
   };
@@ -339,7 +367,7 @@ export default function ShiftDetailModal({
     };
 
     return (
-      <div className={`flex items-center gap-1 ${className}`}>
+      <div className={`flex items-center justify-center gap-1 ${className}`}>
         <input
           type="text"
           value={hh}
@@ -388,8 +416,8 @@ export default function ShiftDetailModal({
               <tr>
                 <th className="p-3 border-b w-10"></th>
                 <th className="p-3 border-b">Ngày</th>
-                <th className="p-3 border-b">Giờ Vào (In)</th>
-                <th className="p-3 border-b">Giờ Ra (Out)</th>
+                <th className="px-6 py-3 border-b text-center">Giờ Vào (In)</th>
+                <th className="px-6 py-3 border-b text-center">Giờ Ra (Out)</th>
                 <th className="p-3 border-b text-right">Số Giờ</th>
                 <th className="p-3 border-b text-center">Cuối Tuần</th>
                 <th className="p-3 border-b w-10"></th>
@@ -397,9 +425,10 @@ export default function ShiftDetailModal({
             </thead>
             <tbody className="divide-y">
               {shifts.map((shift, index) => (
+                <React.Fragment key={shift.id}>
                 <tr
                   key={shift.id}
-                  className={`group transition-colors ${
+                  className={`shift-row group peer transition-colors ${
                     !shift.inTime || !shift.outTime || shift.hours === 0
                       ? "bg-red-50 border-l-4 border-red-400"
                       : "hover:bg-gray-50 border-l-4 border-transparent"
@@ -423,7 +452,7 @@ export default function ShiftDetailModal({
                       }
                     />
                   </td>
-                  <td className="p-2 align-middle">
+                  <td className="px-6 py-2 align-middle">
                     <TimeSelect
                       value={toInputFormat(shift.inTime)}
                       onChange={(val) =>
@@ -436,7 +465,7 @@ export default function ShiftDetailModal({
                       }
                     />
                   </td>
-                  <td className="p-2 align-middle">
+                  <td className="px-6 py-2 align-middle relative group/time">
                     <TimeSelect
                       value={toInputFormat(shift.outTime)}
                       onChange={(val) =>
@@ -448,6 +477,14 @@ export default function ShiftDetailModal({
                           : ""
                       }
                     />
+                    {/* Swap Button - centered on the timeline border */}
+                    <button
+                      onClick={() => handleSwapTimes(shift.id)}
+                      className="absolute left-0 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white border rounded-full p-1.5 shadow-sm opacity-0 group-hover:opacity-100 hover:bg-blue-50 hover:text-blue-600 transition-all z-50 transform hover:scale-110"
+                      title="Đổi giờ Vào/Ra"
+                    >
+                      <ArrowRightLeft size={14} />
+                    </button>
                   </td>
                   <td className="p-3 text-right font-mono align-middle">
                     {calculateHours(shift.inTime, shift.outTime)}
@@ -471,6 +508,23 @@ export default function ShiftDetailModal({
                     </button>
                   </td>
                 </tr>
+                {/* Insert Button Overlay Area - Visible on hover of the row or itself */}
+                <tr className="h-0 relative border-none hover:[&_div]:opacity-100 [.shift-row:hover_+_&_div]:opacity-100">
+                  <td colSpan={7} className="p-0 border-none relative h-0">
+                    <div className="absolute top-[-12px] left-0 w-full flex items-center justify-center h-6 opacity-0 transition-opacity z-50 pointer-events-none hover:pointer-events-auto">
+                      {/* Visual line indicator */}
+                      <div className="absolute w-full border-b-2 border-dashed border-blue-300 top-1/2 -translate-y-1/2 left-0 right-0"></div>
+                      <button
+                        onClick={() => handleAddShiftAt(index)}
+                        className="relative bg-green-500 hover:bg-green-600 text-white rounded-full p-1.5 shadow-md transform scale-90 hover:scale-110 transition-transform z-30 pointer-events-auto"
+                        title="Chèn dòng mới"
+                      >
+                        <Plus size={18} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </React.Fragment>
               ))}
               {shifts.length === 0 && (
                 <tr>
