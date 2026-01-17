@@ -16,6 +16,9 @@ import {
 export type Report = {
   id?: string;
   createdAt: Timestamp; // Firestore Timestamp
+  startDate?: Timestamp;
+  endDate?: Timestamp;
+  includeInCashFlow?: boolean;
   fileName: string;
   revenue: number;
   salary: number;
@@ -28,8 +31,10 @@ export type Report = {
   storeId?: string;
 };
 
-export type NewReport = Omit<Report, "id" | "createdAt"> & {
+export type NewReport = Omit<Report, "id" | "createdAt" | "startDate" | "endDate"> & {
   createdAt?: Timestamp | Date;
+  startDate?: Timestamp | Date;
+  endDate?: Timestamp | Date;
 };
 
 const REPORTS_COLLECTION = "reports";
@@ -44,10 +49,31 @@ export async function saveReport(data: NewReport) {
     }
   }
 
+  let startDate = null;
+  if (data.startDate) {
+    if (data.startDate instanceof Date) {
+      startDate = Timestamp.fromDate(data.startDate);
+    } else {
+      startDate = data.startDate;
+    }
+  }
+
+  let endDate = null;
+  if (data.endDate) {
+    if (data.endDate instanceof Date) {
+      endDate = Timestamp.fromDate(data.endDate);
+    } else {
+      endDate = data.endDate;
+    }
+  }
+
   const docRef = await addDoc(collection(db, REPORTS_COLLECTION), {
     ...data,
     storeId: data.storeId || "cafe",
     createdAt,
+    startDate,
+    endDate,
+    includeInCashFlow: data.includeInCashFlow ?? true,
   });
   return docRef.id;
 }

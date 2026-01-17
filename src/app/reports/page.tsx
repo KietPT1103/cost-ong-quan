@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getReports, Report } from "@/services/reportService";
+import { getReports, Report, updateReport } from "@/services/reportService";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import Link from "next/link";
-import { ArrowLeft, FileText, Search, Calendar } from "lucide-react";
+import { ArrowLeft, FileText, Search, Calendar, Pencil, Check, X, CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 
@@ -20,6 +20,42 @@ export default function ReportsPage() {
   const [search, setSearch] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+
+  async function handleToggleCashFlow(report: Report) {
+    if (!report.id) return;
+    try {
+      const newValue = !(report.includeInCashFlow ?? true);
+      await updateReport(report.id, { includeInCashFlow: newValue });
+      setReports((prev) =>
+        prev.map((r) =>
+          r.id === report.id ? { ...r, includeInCashFlow: newValue } : r
+        )
+      );
+    } catch (error) {
+      console.error(error);
+      alert("Lỗi khi cập nhật trạng thái");
+    }
+  }
+
+  function startEdit(report: Report) {
+    setEditingId(report.id || null);
+    setEditName(report.fileName);
+  }
+
+  async function saveEdit(id: string) {
+    try {
+      await updateReport(id, { fileName: editName });
+      setReports((prev) =>
+        prev.map((r) => (r.id === id ? { ...r, fileName: editName } : r))
+      );
+      setEditingId(null);
+    } catch (error) {
+      console.error(error);
+      alert("Lỗi khi đổi tên file");
+    }
+  }
 
   async function loadData() {
     setLoading(true);
@@ -140,6 +176,9 @@ export default function ReportsPage() {
                         Lợi nhuận
                       </th>
                       <th className="px-6 py-3 text-center font-medium text-gray-500">
+                        Dòng tiền
+                      </th>
+                      <th className="px-6 py-3 text-center font-medium text-gray-500">
                         Hành động
                       </th>
                     </tr>
@@ -174,7 +213,41 @@ export default function ReportsPage() {
                               : "N/A"}
                           </td>
                           <td className="px-6 py-4 font-medium text-gray-900">
-                            {r.fileName}
+                            {editingId === r.id ? (
+                              <div className="flex items-center gap-2">
+                                <Input
+                                  value={editName}
+                                  onChange={(e) => setEditName(e.target.value)}
+                                  className="h-8 text-sm"
+                                />
+                                <Button
+                                  size="icon"
+                                  className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
+                                  variant="ghost"
+                                  onClick={() => r.id && saveEdit(r.id)}
+                                >
+                                  <Check className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  variant="ghost"
+                                  onClick={() => setEditingId(null)}
+                                >
+                                  <X className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2 group/edit">
+                                <span>{r.fileName}</span>
+                                <button
+                                  onClick={() => startEdit(r)}
+                                  className="opacity-0 group-hover/edit:opacity-100 transition-opacity text-gray-400 hover:text-blue-600"
+                                >
+                                  <Pencil className="w-3 h-3" />
+                                </button>
+                              </div>
+                            )}
                           </td>
                           <td className="px-6 py-4 text-right">
                             {r.revenue.toLocaleString()}
@@ -188,6 +261,19 @@ export default function ReportsPage() {
                             }`}
                           >
                             {r.profit.toLocaleString()}
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            <button
+                              onClick={() => handleToggleCashFlow(r)}
+                              className="text-gray-400 hover:text-emerald-600 transition-colors"
+                              title="Bật/tắt tính vào dòng tiền"
+                            >
+                              {r.includeInCashFlow !== false ? (
+                                <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                              ) : (
+                                <XCircle className="w-5 h-5" />
+                              )}
+                            </button>
                           </td>
                           <td className="px-6 py-4 text-center">
                             <Link href={`/reports/${r.id}`}>

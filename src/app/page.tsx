@@ -47,7 +47,9 @@ export default function HomePage() {
   const [other, setOther] = useState(0);
   const [revenue, setRevenue] = useState(0);
   const [fileName, setFileName] = useState<string>("");
-  const [reportMonth, setReportMonth] = useState("");
+  const [reportStartDate, setReportStartDate] = useState("");
+  const [reportEndDate, setReportEndDate] = useState("");
+  const [includeInCashFlow, setIncludeInCashFlow] = useState(true);
 
   useEffect(() => {
     if (!loading) {
@@ -133,7 +135,10 @@ export default function HomePage() {
         totalCost,
         profit,
         storeId,
-        createdAt: reportMonth ? new Date(reportMonth) : undefined,
+        createdAt: reportEndDate ? new Date(reportEndDate) : new Date(),
+        startDate: reportStartDate ? new Date(reportStartDate) : undefined,
+        endDate: reportEndDate ? new Date(reportEndDate) : undefined,
+        includeInCashFlow,
         details: rows.map((r) => ({
           product_code: r.product_code,
           product_name: r.product_name,
@@ -387,17 +392,47 @@ export default function HomePage() {
               <CardContent className="space-y-4">
                 <div>
                   <label className="text-sm font-medium mb-1 block text-slate-700">
-                    Tháng báo cáo (Tuỳ chọn)
+                    Khoảng thời gian báo cáo (Tuỳ chọn)
                   </label>
-                  <input
-                    type="month"
-                    className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    value={reportMonth}
-                    onChange={(e) => setReportMonth(e.target.value)}
-                  />
+                  <div className="flex gap-2">
+                    <div className="flex-1">
+                      <input
+                        type="date"
+                        className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        value={reportStartDate}
+                        onChange={(e) => setReportStartDate(e.target.value)}
+                        placeholder="Từ ngày"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <input
+                        type="date"
+                        className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        value={reportEndDate}
+                        onChange={(e) => setReportEndDate(e.target.value)}
+                        placeholder="Đến ngày"
+                      />
+                    </div>
+                  </div>
                   <p className="text-xs text-muted-foreground mt-1">
                     Nếu để trống sẽ lấy thời gian hiện tại
                   </p>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="includeInCashFlow"
+                    checked={includeInCashFlow}
+                    onChange={(e) => setIncludeInCashFlow(e.target.checked)}
+                    className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-600"
+                  />
+                  <label
+                    htmlFor="includeInCashFlow"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Tính vào dòng tiền
+                  </label>
                 </div>
                 <InputMoney label="Doanh thu tổng (VNĐ)" set={setRevenue} />
                 <div className="border-t my-2"></div>

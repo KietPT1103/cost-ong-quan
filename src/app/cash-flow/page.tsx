@@ -95,6 +95,9 @@ export default function CashFlowPage() {
     let totalProfit = 0;
 
     reports.forEach((r) => {
+      // Skip if not included in cash flow
+      if (r.includeInCashFlow === false) return;
+
       if (!r.createdAt?.seconds) return;
       const date = new Date(r.createdAt.seconds * 1000);
       const month = date.getMonth(); // 0-11
