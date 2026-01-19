@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import { getReports, Report } from "@/services/reportService";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import Link from "next/link";
-import { ArrowLeft, BarChart3, Printer, X, Check } from "lucide-react";
+import { ArrowLeft, BarChart3, Printer, X, Check, Calendar, TrendingUp, TrendingDown, DollarSign } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 
@@ -134,7 +134,7 @@ export default function CashFlowPage() {
     });
 
     return { totalRevenue, totalCost, totalProfit, quarters, months };
-  }, [reports, printScope, customStartDate, customEndDate]);
+  }, [reports, printScope, customStartDate, customEndDate, year]); // Added year to deps just in case
 
   const StatCard = ({
     title,
@@ -142,40 +142,52 @@ export default function CashFlowPage() {
     cost,
     profit,
     highlight,
+    compact = false
   }: {
     title: string;
     revenue: number;
     cost: number;
     profit: number;
     highlight?: boolean;
+    compact?: boolean;
   }) => (
     <div
       className={cn(
-        "rounded-xl border bg-card text-card-foreground shadow-sm p-6 print:border-gray-300 print:shadow-none",
-        highlight && "border-blue-200 bg-blue-50/50 print:bg-gray-50"
+        "rounded-2xl border bg-card text-card-foreground shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md cursor-pointer",
+        "print:border-gray-300 print:shadow-none print:hover:transform-none",
+        highlight && "ring-2 ring-primary/20 border-primary/50 bg-primary/5 print:bg-gray-50",
+        compact ? "p-4" : "p-6"
       )}
     >
-      <h3 className="font-semibold leading-none tracking-tight mb-4 text-lg">
+      <h3 className={cn("font-semibold leading-none tracking-tight text-slate-700 flex items-center justify-between", compact ? "mb-3 text-base" : "mb-5 text-lg")}>
         {title}
+        {highlight && <Check className="w-4 h-4 text-primary" />}
       </h3>
-      <div className="space-y-3">
-        <div className="flex justify-between text-sm">
-          <span className="text-muted-foreground print:text-gray-600">
-            Doanh thu:
+      <div className={cn("space-y-2", compact ? "text-sm" : "")}>
+        <div className="flex justify-between items-center bg-slate-50 p-2 rounded-lg">
+          <span className="text-muted-foreground flex items-center gap-1.5">
+            <TrendingUp className="w-4 h-4 text-slate-400" />
+            Doanh thu
           </span>
-          <span className="font-medium">{revenue.toLocaleString()}</span>
+          <span className="font-semibold text-slate-700">{revenue.toLocaleString()}</span>
         </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-muted-foreground print:text-gray-600">
-            Chi phí:
+        <div className="flex justify-between items-center bg-slate-50 p-2 rounded-lg">
+          <span className="text-muted-foreground flex items-center gap-1.5">
+            <TrendingDown className="w-4 h-4 text-slate-400" />
+            Chi phí
           </span>
-          <span className="font-medium text-red-600">
+          <span className="font-semibold text-rose-600">
             {cost.toLocaleString()}
           </span>
         </div>
-        <div className="pt-2 border-t mt-2 flex justify-between font-bold text-base">
-          <span>Lợi nhuận:</span>
-          <span className={profit >= 0 ? "text-green-600" : "text-red-600"}>
+        <div className={cn("flex justify-between items-center p-2 rounded-lg font-bold border-t border-dashed border-slate-200 mt-2",
+            profit >= 0 ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
+        )}>
+          <span className="flex items-center gap-1.5">
+            <DollarSign className="w-4 h-4 opacity-70" />
+            Lợi nhuận
+          </span>
+          <span>
             {profit.toLocaleString()}
           </span>
         </div>
@@ -194,7 +206,7 @@ export default function CashFlowPage() {
     <RoleGuard allowedRoles={["admin"]}>
       <div
         className={cn(
-          "min-h-screen bg-gray-50 font-sans text-slate-800 print:bg-white",
+          "min-h-screen bg-[#F8FAFC] font-sans text-slate-800 print:bg-white",
           `print-scope-${printScope}`
         )}
       >
@@ -203,7 +215,7 @@ export default function CashFlowPage() {
           @media print {
             @page {
               size: A4;
-              margin: 20mm;
+              margin: 15mm;
             }
             body {
               background: white;
@@ -212,8 +224,6 @@ export default function CashFlowPage() {
             .no-print {
               display: none !important;
             }
-
-            /* Adjust grid for print */
             .grid {
               display: block !important;
             }
@@ -226,202 +236,200 @@ export default function CashFlowPage() {
 
         {/* Print Modal */}
         {showPrintModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 no-print p-4">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
-              <div className="p-4 border-b flex justify-between items-center bg-gray-50">
-                <h3 className="font-semibold text-lg flex items-center gap-2">
-                  <Printer className="w-5 h-5 text-blue-600" />
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm no-print p-4 transition-all duration-300">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200 border border-slate-100">
+              <div className="p-5 border-b flex justify-between items-center bg-slate-50/50">
+                <h3 className="font-bold text-lg flex items-center gap-2 text-slate-800">
+                  <Printer className="w-5 h-5 text-primary" />
                   Tùy chọn in ấn
                 </h3>
                 <button
                   onClick={() => setShowPrintModal(false)}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="p-1 rounded-full hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              <div className="p-6 space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">
-                    Chọn thời gian báo cáo:
+              <div className="p-6 space-y-5">
+                <div className="space-y-3">
+                  <label className="text-sm font-semibold text-slate-700 uppercase tracking-wider text-[11px]">
+                    Phạm vi thời gian
                   </label>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 gap-3">
                     <button
                       onClick={() => setPrintScope("ALL")}
                       className={cn(
-                        "p-2 text-sm border rounded flex items-center justify-center gap-2 hover:bg-blue-50 transition-colors",
+                        "p-3 text-sm border-2 rounded-xl flex items-center justify-center gap-2 transition-all font-medium",
                         printScope === "ALL"
-                          ? "border-blue-500 bg-blue-50 text-blue-700 font-medium"
-                          : "text-gray-600"
+                          ? "border-primary bg-primary/5 text-primary"
+                          : "border-slate-100 bg-white text-slate-600 hover:border-slate-300"
                       )}
                     >
-                      {printScope === "ALL" && <Check className="w-3 h-3" />} Cả
-                      năm
+                      {printScope === "ALL" && <Check className="w-4 h-4" />} Cả năm
                     </button>
                     <button
                       onClick={() => setPrintScope("CUSTOM")}
                       className={cn(
-                        "p-2 text-sm border rounded flex items-center justify-center gap-2 hover:bg-blue-50 transition-colors",
+                        "p-3 text-sm border-2 rounded-xl flex items-center justify-center gap-2 transition-all font-medium",
                         printScope === "CUSTOM"
-                          ? "border-blue-500 bg-blue-50 text-blue-700 font-medium"
-                          : "text-gray-600"
+                          ? "border-primary bg-primary/5 text-primary"
+                          : "border-slate-100 bg-white text-slate-600 hover:border-slate-300"
                       )}
                     >
-                      {printScope === "CUSTOM" && <Check className="w-3 h-3" />}
-                      Tùy chọn
+                      {printScope === "CUSTOM" && <Check className="w-4 h-4" />} Tùy chọn
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-4 gap-2 mt-2">
-                    {Array.from({ length: 12 }, (_, idx) => idx + 1).map(
-                      (month) => (
+                  <div className="space-y-2 pt-2">
+                    <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Theo Quý</div>
+                    <div className="grid grid-cols-4 gap-2">
+                      {[1, 2, 3, 4].map((q) => (
                         <button
-                          key={month}
-                          onClick={() =>
-                            setPrintScope(`M${month}` as PrintScope)
-                          }
+                          key={q}
+                          onClick={() => setPrintScope(`Q${q}` as PrintScope)}
                           className={cn(
-                            "p-2 text-sm border rounded flex items-center justify-center gap-1 hover:bg-blue-50 transition-colors",
-                            printScope === `M${month}`
-                              ? "border-blue-500 bg-blue-50 text-blue-700 font-medium"
-                              : "text-gray-600"
+                            "py-2 px-1 text-xs border rounded-lg flex flex-col items-center justify-center gap-1 transition-all font-medium",
+                            printScope === `Q${q}`
+                                ? "border-primary bg-primary/5 text-primary shadow-sm"
+                                : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
                           )}
                         >
-                          {printScope === `M${month}` && (
-                            <Check className="w-3 h-3" />
-                          )}{" "}
-                          Tháng {month}
+                          <span className="text-lg leading-none">Q{q}</span>
                         </button>
-                      )
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-4 gap-2 mt-2">
-                    {[1, 2, 3, 4].map((q) => (
-                      <button
-                        key={q}
-                        onClick={() => setPrintScope(`Q${q}` as PrintScope)}
-                        className={cn(
-                          "p-2 text-sm border rounded flex items-center justify-center gap-1 hover:bg-blue-50 transition-colors",
-                          printScope === `Q${q}`
-                            ? "border-blue-500 bg-blue-50 text-blue-700 font-medium"
-                            : "text-gray-600"
-                        )}
-                      >
-                        {printScope === `Q${q}` && (
-                          <Check className="w-3 h-3" />
-                        )}{" "}
-                        Q{q}
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 mt-2 animate-in slide-in-from-top-2 fade-in duration-200">
-                    <div>
-                      <label className="text-xs text-gray-500 mb-1 block">
-                        Từ ngày
-                      </label>
-                      <input
-                        type="date"
-                        value={customStartDate}
-                        onChange={(e) => {
-                          setPrintScope("CUSTOM");
-                          setCustomStartDate(e.target.value);
-                        }}
-                        className="w-full p-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-500 mb-1 block">
-                        Đến ngày
-                      </label>
-                      <input
-                        type="date"
-                        value={customEndDate}
-                        onChange={(e) => {
-                          setPrintScope("CUSTOM");
-                          setCustomEndDate(e.target.value);
-                        }}
-                        className="w-full p-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
+                      ))}
                     </div>
                   </div>
+
+                  <div className="space-y-2 pt-2">
+                    <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Theo Tháng</div>
+                    <div className="grid grid-cols-6 gap-2">
+                      {Array.from({ length: 12 }, (_, idx) => idx + 1).map(
+                        (month) => (
+                          <button
+                            key={month}
+                            onClick={() =>
+                              setPrintScope(`M${month}` as PrintScope)
+                            }
+                            className={cn(
+                              "py-2 px-1 text-xs border rounded-lg flex items-center justify-center transition-all font-medium",
+                              printScope === `M${month}`
+                                ? "border-primary bg-primary/5 text-primary shadow-sm"
+                                : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                            )}
+                          >
+                            T{month}
+                          </button>
+                        )
+                      )}
+                    </div>
+                  </div>
+                  
+                  {printScope === "CUSTOM" && (
+                    <div className="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-slate-100 animate-in slide-in-from-top-2 fade-in">
+                        <div>
+                        <label className="text-xs font-medium text-slate-500 mb-1.5 block">
+                            Từ ngày
+                        </label>
+                        <input
+                            type="date"
+                            value={customStartDate}
+                            onChange={(e) => setCustomStartDate(e.target.value)}
+                            className="w-full p-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm"
+                        />
+                        </div>
+                        <div>
+                        <label className="text-xs font-medium text-slate-500 mb-1.5 block">
+                            Đến ngày
+                        </label>
+                        <input
+                            type="date"
+                            value={customEndDate}
+                            onChange={(e) => setCustomEndDate(e.target.value)}
+                            className="w-full p-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm"
+                        />
+                        </div>
+                    </div>
+                  )}
+
                 </div>
               </div>
-              <div className="p-4 border-t bg-gray-50 flex justify-end gap-3">
+              <div className="p-4 border-t bg-slate-50 flex justify-end gap-3">
                 <Button
                   variant="ghost"
                   onClick={() => setShowPrintModal(false)}
+                  className="text-slate-500 hover:text-slate-800 hover:bg-slate-100"
                 >
-                  Hủy
+                  Hủy bỏ
                 </Button>
                 <Button
                   onClick={handlePrint}
-                  className="bg-blue-600 hover:bg-blue-700 text-white flex gap-2"
+                  className="bg-primary hover:bg-blue-700 text-white shadow-lg shadow-primary/30 flex gap-2 rounded-xl px-6"
                 >
-                  <Printer className="w-4 h-4" /> In ngay
+                  <Printer className="w-4 h-4" /> Xác nhận In
                 </Button>
               </div>
             </div>
           </div>
         )}
 
-        <div className="max-w-6xl mx-auto p-6 md:p-12 space-y-8">
+        <div className="max-w-7xl mx-auto p-6 md:p-8 lg:p-12 space-y-8">
           {/* Header */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 no-print">
-            <div className="flex items-center gap-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 no-print bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+            <div className="flex items-center gap-5">
               <Link
                 href="/"
-                className="p-2 rounded-full hover:bg-white bg-white/50 transition-colors text-gray-600 shadow-sm"
+                className="group p-3 rounded-2xl hover:bg-slate-100 bg-slate-50 transition-all text-slate-500 hover:text-primary border border-transparent hover:border-slate-200"
                 title="Trở về trang chủ"
               >
-                <ArrowLeft className="w-6 h-6" />
+                <ArrowLeft className="w-6 h-6 group-hover:-translate-x-1 transition-transform" />
               </Link>
               <div>
-                <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-                  <BarChart3 className="w-8 h-8 text-blue-600" />
-                  Thống kê dòng tiền
+                <h1 className="text-2xl md:text-3xl font-bold text-slate-900 flex items-center gap-3">
+                    <div className="p-2 bg-primary/10 rounded-xl">
+                        <BarChart3 className="w-8 h-8 text-primary" />
+                    </div>
+                  Thống kê Dòng Tiền
                 </h1>
-                <p className="text-muted-foreground">
-                  Tổng hợp tình hình kinh doanh theo thời gian
+                <p className="text-slate-500 mt-1 font-medium">
+                  Tổng hợp tình hình kinh doanh & lợi nhuận
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex items-center bg-slate-100 p-1.5 rounded-xl border border-slate-200">
+                <button
+                  onClick={() => setYear(year - 1)}
+                  className="w-9 h-9 flex items-center justify-center hover:bg-white hover:shadow-sm rounded-lg text-slate-600 transition-all"
+                >
+                  ←
+                </button>
+                <span className="font-bold px-4 text-slate-800 bg-white shadow-sm py-1.5 rounded-md min-w-[100px] text-center border border-slate-100">Năm {year}</span>
+                <button
+                  onClick={() => setYear(year + 1)}
+                  className="w-9 h-9 flex items-center justify-center hover:bg-white hover:shadow-sm rounded-lg text-slate-600 transition-all"
+                >
+                  →
+                </button>
+              </div>
+              
               <Button
                 variant="outline"
-                className="flex gap-2 bg-white"
+                className="flex gap-2 bg-white hover:bg-slate-50 border-slate-200 text-slate-700 h-12 px-5 rounded-xl border-2"
                 onClick={() => setShowPrintModal(true)}
               >
                 <Printer className="w-4 h-4" />
                 In báo cáo
               </Button>
-
-              <div className="flex items-center gap-2 bg-white p-1 rounded-lg border shadow-sm">
-                <button
-                  onClick={() => setYear(year - 1)}
-                  className="px-3 py-1 hover:bg-gray-100 rounded text-sm"
-                >
-                  ←
-                </button>
-                <span className="font-bold px-2">Năm {year}</span>
-                <button
-                  onClick={() => setYear(year + 1)}
-                  className="px-3 py-1 hover:bg-gray-100 rounded text-sm"
-                >
-                  →
-                </button>
-              </div>
             </div>
           </div>
 
           {/* Print Header (Visible only when printing) */}
-          <div className="hidden print:block mb-8 text-center border-b pb-4">
-            <h1 className="text-2xl font-bold text-black uppercase">
+          <div className="hidden print:block mb-8 text-center border-b pb-6">
+            <h1 className="text-3xl font-bold text-slate-900 uppercase tracking-tight mb-2">
               Báo cáo Dòng Tiền - Năm {year}
             </h1>
-            <p className="text-gray-600 mt-1">
+            <p className="text-slate-600 text-lg">
               {printScope === "ALL" && "Báo cáo tổng hợp cả năm"}
               {printScope.startsWith("M") &&
                 `Báo cáo Tháng ${printScope.substring(1)}`}
@@ -432,76 +440,103 @@ export default function CashFlowPage() {
                   "vi-VN"
                 )} đến ${new Date(customEndDate).toLocaleDateString("vi-VN")}`}
             </p>
-            <p className="text-xs text-gray-400 mt-2">
-              Ngày in: {new Date(printDate).toLocaleDateString("vi-VN")}
+            <p className="text-sm text-slate-400 mt-4 italic">
+              Ngày xuất báo cáo: {new Date(printDate).toLocaleDateString("vi-VN")}
             </p>
           </div>
 
           {loading ? (
-            <div className="text-center py-12 text-gray-500">
-              Đang tải dữ liệu...
+            <div className="flex flex-col items-center justify-center py-24 text-slate-400 animate-pulse">
+                <BarChart3 className="w-12 h-12 mb-4 opacity-50" />
+              <div className="text-lg font-medium">Đang tính toán dữ liệu...</div>
             </div>
           ) : (
-            <div className="space-y-10">
-              {/* ANNUAL SUMMARY */}
+            <div className="space-y-12 pb-12">
+              {/* ANNUAL SUMMARY - BENTO GRID HERO */}
               <section className="print-section" data-id="annual">
-                <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                  <span className="w-2 h-8 bg-blue-600 rounded-full print:hidden"></span>
-                  {printScope === "ALL"
-                    ? `Tổng kết năm ${year}`
-                    : "Tổng kết theo phạm vi chọn"}
-                </h2>
+                <div className="flex items-center gap-3 mb-6 no-print">
+                    <div className="w-1.5 h-8 bg-primary rounded-full"></div>
+                    <h2 className="text-xl font-bold text-slate-800">
+                        {printScope === "ALL" ? `Tổng quan tài chính ${year}` : "Tổng kết theo phạm vi chọn"}
+                    </h2>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <Card className="print:border-0 print:shadow-none print:bg-transparent">
-                    <CardHeader className="pb-2 print:p-0">
-                      <CardTitle className="text-sm font-medium text-muted-foreground">
+                  {/* Revenue Card */}
+                  <Card className="rounded-3xl border-0 shadow-lg shadow-blue-900/5 bg-gradient-to-br from-blue-500 to-blue-600 text-white overflow-hidden relative group print:bg-none print:shadow-none print:text-black print:border">
+                    <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity transform group-hover:scale-110 duration-500">
+                        <TrendingUp className="w-24 h-24" />
+                    </div>
+                    <CardHeader className="pb-2 relative z-10">
+                      <CardTitle className="text-blue-100 font-medium text-base tracking-wide uppercase flex items-center gap-2">
+                        <div className="p-1 bg-white/20 rounded-md"><TrendingUp className="w-4 h-4 text-white" /></div>
                         Tổng doanh thu
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="print:p-0">
-                      <div className="text-2xl font-bold text-blue-600">
+                    <CardContent className="pt-2 relative z-10">
+                      <div className="text-3xl md:text-4xl font-bold tracking-tight">
                         {stats.totalRevenue.toLocaleString()}
+                        <span className="text-lg font-normal text-blue-200 ml-1">đ</span>
+                      </div>
+                      <div className="mt-4 text-sm text-blue-100 bg-blue-600/30 inline-block px-3 py-1 rounded-full border border-blue-400/30">
+                        Doanh thu trước phí
                       </div>
                     </CardContent>
                   </Card>
-                  <Card className="print:border-0 print:shadow-none print:bg-transparent">
-                    <CardHeader className="pb-2 print:p-0">
-                      <CardTitle className="text-sm font-medium text-muted-foreground">
+
+                  {/* Cost Card */}
+                  <Card className="rounded-3xl border-slate-200 bg-white text-slate-800 shadow-sm relative overflow-hidden group hover:shadow-md transition-all print:border">
+                     <div className="absolute right-0 top-0 w-32 h-32 bg-rose-50 rounded-bl-full -mr-6 -mt-6"></div>
+                    <CardHeader className="pb-2 relative z-10">
+                      <CardTitle className="text-slate-500 font-medium text-base tracking-wide uppercase flex items-center gap-2">
+                        <div className="p-1 bg-rose-100 rounded-md"><TrendingDown className="w-4 h-4 text-rose-600" /></div>
                         Tổng chi phí
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="print:p-0">
-                      <div className="text-2xl font-bold text-red-600">
+                    <CardContent className="pt-2 relative z-10">
+                      <div className="text-3xl md:text-4xl font-bold tracking-tight text-rose-600">
                         {stats.totalCost.toLocaleString()}
+                        <span className="text-lg font-normal text-rose-300 ml-1">đ</span>
+                      </div>
+                      <div className="mt-4 text-sm text-slate-400 flex items-center gap-2">
+                        Bao gồm cost nhập hàng và lương
                       </div>
                     </CardContent>
                   </Card>
-                  <Card className="print:border-0 print:shadow-none print:bg-transparent">
-                    <CardHeader className="pb-2 print:p-0">
-                      <CardTitle className="text-sm font-medium text-muted-foreground">
+
+                  {/* Profit Card */}
+                   <Card className={cn(
+                       "rounded-3xl border-0 shadow-lg shadow-emerald-900/5 text-white overflow-hidden relative group print:bg-none print:shadow-none print:text-black print:border",
+                       stats.totalProfit >= 0 ? "bg-gradient-to-br from-emerald-500 to-emerald-600" : "bg-gradient-to-br from-rose-500 to-rose-600"
+                   )}>
+                    <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity transform group-hover:scale-110 duration-500">
+                        <DollarSign className="w-24 h-24" />
+                    </div>
+                    <CardHeader className="pb-2 relative z-10">
+                      <CardTitle className={cn("font-medium text-base tracking-wide uppercase flex items-center gap-2", stats.totalProfit >= 0 ? "text-emerald-100" : "text-rose-100")}>
+                        <div className="p-1 bg-white/20 rounded-md"><DollarSign className="w-4 h-4 text-white" /></div>
                         Lợi nhuận ròng
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="print:p-0">
-                      <div
-                        className={cn(
-                          "text-2xl font-bold",
-                          stats.totalProfit >= 0
-                            ? "text-green-600"
-                            : "text-red-600"
-                        )}
-                      >
+                    <CardContent className="pt-2 relative z-10">
+                      <div className="text-3xl md:text-4xl font-bold tracking-tight">
                         {stats.totalProfit.toLocaleString()}
+                        <span className={cn("text-lg font-normal ml-1", stats.totalProfit >= 0 ? "text-emerald-200" : "text-rose-200")}>đ</span>
+                      </div>
+                         <div className={cn("mt-4 text-sm inline-block px-3 py-1 rounded-full border", 
+                            stats.totalProfit >= 0 ? "bg-emerald-600/30 border-emerald-400/30 text-emerald-100" : "bg-rose-600/30 border-rose-400/30 text-rose-100"
+                         )}>
+                        {stats.totalProfit >= 0 ? "Kinh doanh có lãi" : "Đang lỗ"}
                       </div>
                     </CardContent>
                   </Card>
                 </div>
               </section>
 
-              {/* MONTHLY */}
+              {/* MONTHLY DETAIL */}
               <section
                 className={cn(
-                  "print-section",
+                  "print-section space-y-6",
                   printScope === "ALL" || printScope.startsWith("M")
                     ? ""
                     : "print:hidden",
@@ -509,11 +544,14 @@ export default function CashFlowPage() {
                 )}
                 data-id="monthly"
               >
-                <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                  <span className="w-2 h-8 bg-purple-500 rounded-full print:hidden"></span>
-                  Báo cáo theo Tháng
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                 <div className="flex items-center gap-3 no-print border-t pt-8">
+                    <div className="w-1.5 h-8 bg-purple-500 rounded-full"></div>
+                    <h2 className="text-xl font-bold text-slate-800">
+                        Chi tiết từng Tháng
+                    </h2>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
                   {stats.months.map((m, idx) => (
                     <div
                       key={m.id}
@@ -529,16 +567,17 @@ export default function CashFlowPage() {
                         cost={m.cost}
                         profit={m.profit}
                         highlight={printScope === `M${idx + 1}`}
+                        compact={true}
                       />
                     </div>
                   ))}
                 </div>
               </section>
 
-              {/* QUARTERLY */}
+              {/* QUARTERLY DETAIL */}
               <section
                 className={cn(
-                  "print-section",
+                  "print-section space-y-6",
                   printScope === "ALL" || printScope.startsWith("Q")
                     ? ""
                     : "print:hidden",
@@ -547,11 +586,14 @@ export default function CashFlowPage() {
                 )}
                 data-id={printScope}
               >
-                <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                  <span className="w-2 h-8 bg-emerald-500 rounded-full print:hidden"></span>
-                  Báo cáo theo Quý
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="flex items-center gap-3 no-print border-t pt-8">
+                    <div className="w-1.5 h-8 bg-cta rounded-full"></div>
+                    <h2 className="text-xl font-bold text-slate-800">
+                        Tổng hợp theo Quý
+                    </h2>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
                   {stats.quarters.map((q, idx) => (
                     <div
                       key={q.id}

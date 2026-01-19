@@ -14,6 +14,7 @@ import {
   Coffee,
   LogOut,
   Wallet,
+  ArrowRight
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { fetchProductCosts, seedProductCosts } from "@/services/productService";
@@ -25,6 +26,8 @@ import {
   BarChart3,
   ReceiptText,
   RefreshCw,
+  CalendarDays,
+  Filter
 } from "lucide-react";
 import {
   Card,
@@ -36,6 +39,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/context/StoreContext";
+import { cn } from "@/lib/utils";
 
 export default function HomePage() {
   const { user, role, loading, logout } = useAuth();
@@ -63,8 +67,8 @@ export default function HomePage() {
 
   if (loading || !user || role === "user") {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
+      <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -155,114 +159,82 @@ export default function HomePage() {
     }
   };
 
-  // const handleMigrate = async () => {
-  //   if (
-  //     !confirm(
-  //       "Thao tác này sẽ gán tất cả sản phẩm cũ (chưa có cửa hàng) vào cửa hàng [Cafe]. Bạn có chắc chắn không?"
-  //     )
-  //   )
-  //     return;
+  const navItems = [
+    { href: "/pos", label: "Bán hàng", icon: Coffee, color: "text-sky-600", bg: "bg-sky-50" },
+    { href: "/reports", label: "Báo cáo", icon: FileText, color: "text-emerald-600", bg: "bg-emerald-50" },
+    { href: "/cash-flow", label: "Dòng tiền", icon: BarChart3, color: "text-purple-600", bg: "bg-purple-50" },
+    { href: "/bills", label: "Hóa đơn", icon: ReceiptText, color: "text-orange-600", bg: "bg-orange-50" },
+    { href: "/product", label: "Sản phẩm", icon: Package, color: "text-blue-600", bg: "bg-blue-50" },
+    { href: "/payroll", label: "Tính lương", icon: Wallet, color: "text-pink-600", bg: "bg-pink-50" },
+  ];
 
-  //   try {
-  //     const count = await migrateOldProducts("cafe");
-  //     alert(`Đã cập nhật thành công ${count} sản phẩm cũ vào Cafe!`);
-  //   } catch (error) {
-  //     console.error(error);
-  //     alert("Lỗi khi cập nhật dữ liệu.");
-  //   }
-  // };
+  // Helper to set dates quickly
+  const setQuickDate = (type: 'this_month' | 'last_month') => {
+    const now = new Date();
+    let start, end;
+
+    if (type === 'this_month') {
+        start = new Date(now.getFullYear(), now.getMonth(), 1);
+        end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    } else {
+        start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        end = new Date(now.getFullYear(), now.getMonth(), 0);
+    }
+
+    setReportStartDate(start.toISOString().split('T')[0]);
+    setReportEndDate(end.toISOString().split('T')[0]);
+  };
 
   return (
-    <main className="min-h-screen bg-background p-6 md:p-12 font-sans text-slate-800">
+    <main className="min-h-screen bg-[#F8FAFC] p-4 md:p-8 lg:p-12 font-sans text-slate-800">
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header Section */}
-        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900 flex items-center gap-3">
-              <div className="p-2 bg-primary/10 rounded-lg text-primary">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-100 relative overflow-hidden">
+             {/* Decorative Background Shape */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full -mr-16 -mt-16 blur-2xl pointer-events-none"></div>
+
+          <div className="relative z-10">
+            <h1 className="text-3xl md:text-3xl font-bold tracking-tight text-slate-900 flex items-center gap-3">
+              <div className="p-3 bg-primary/10 rounded-2xl text-primary shadow-sm">
                 <Calculator className="w-8 h-8" />
               </div>
               Admin Dashboard
             </h1>
-            <p className="flex items-center gap-2 text-slate-500 mt-2 text-sm font-medium">
-              Bạn đang quản lý:
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 border border-emerald-200">
-                {storeName}
-              </span>
-            </p>
+            <div className="flex items-center gap-3 mt-3">
+                 <p className="text-slate-500 font-medium text-sm">Quản lý cửa hàng:</p>
+                 <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                    {storeName}
+                 </span>
+            </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <Link href="/pos">
-              <Button className="gap-2 bg-sky-600 hover:bg-sky-700 text-white border-none shadow-sm hover:shadow-md transition-all">
-                <Coffee className="w-4 h-4" />
-                Bán hàng
-              </Button>
-            </Link>
+          <div className="flex flex-col xl:flex-row items-center gap-4 relative z-10 w-full xl:w-auto mt-6 xl:mt-0">
+            <div className="bg-slate-100/50 p-1.5 rounded-2xl border border-slate-200/60 backdrop-blur-sm w-full xl:w-auto overflow-x-auto">
+              <div className="flex flex-wrap xl:flex-nowrap items-center gap-1 min-w-max mx-auto justify-center xl:justify-start">
+                 {navItems.map((item) => (
+                     <Link href={item.href} key={item.href}>
+                         <Button 
+                            variant="ghost" 
+                            className={cn(
+                              "h-10 px-4 rounded-xl gap-2.5 font-semibold text-sm transition-all border border-transparent",
+                              "text-slate-600 hover:text-slate-900",
+                              "hover:bg-white hover:shadow-sm hover:border-slate-100/50 hover:scale-105"
+                            )}
+                         >
+                            <item.icon className={cn("w-4 h-4 opacity-70 group-hover:opacity-100", item.color)} />
+                            <span>{item.label}</span>
+                         </Button>
+                     </Link>
+                 ))}
+              </div>
+            </div>
 
-            <div className="w-px h-8 bg-slate-200 mx-2 hidden sm:block"></div>
-
-            <Link href="/reports">
-              <Button
-                variant="outline"
-                className="gap-2 hover:bg-slate-50 border-slate-200 text-slate-700"
-              >
-                <FileText className="w-4 h-4 text-emerald-600" />
-                Báo cáo
-              </Button>
-            </Link>
-            <Link href="/cash-flow">
-              <Button
-                variant="outline"
-                className="gap-2 hover:bg-slate-50 border-slate-200 text-slate-700"
-              >
-                <BarChart3 className="w-4 h-4 text-purple-600" />
-                Dòng tiền
-              </Button>
-            </Link>
-            <Link href="/bills">
-              <Button
-                variant="outline"
-                className="gap-2 hover:bg-slate-50 border-slate-200 text-slate-700"
-              >
-                <ReceiptText className="w-4 h-4 text-orange-600" />
-                Hóa đơn
-              </Button>
-            </Link>
-            <Link href="/product">
-              <Button
-                variant="outline"
-                className="gap-2 hover:bg-slate-50 border-slate-200 text-slate-700"
-              >
-                <Package className="w-4 h-4 text-blue-600" />
-                Sản phẩm
-              </Button>
-            </Link>
-            <Link href="/payroll">
-              <Button
-                variant="outline"
-                className="gap-2 hover:bg-slate-50 border-slate-200 text-slate-700"
-              >
-                <Wallet className="w-4 h-4 text-pink-600" />
-                Tính lương
-              </Button>
-            </Link>
-
-            {/* <div className="w-px h-8 bg-slate-200 mx-2 hidden sm:block"></div>
-
-            <Button
-              variant="ghost"
-              onClick={handleMigrate}
-              className="gap-2 text-slate-500 hover:text-slate-700 hover:bg-slate-50"
-              title="Cập nhật dữ liệu cũ"
-            >
-              <RefreshCw className="w-4 h-4" />
-            </Button> */}
+            <div className="hidden xl:block w-px h-8 bg-slate-200"></div>
 
             <Button
               variant="ghost"
               onClick={logout}
-              className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+              className="gap-2 text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-5 rounded-xl font-bold h-10 w-full xl:w-auto whitespace-nowrap"
             >
               <LogOut className="w-4 h-4" />
               Đăng xuất
@@ -270,49 +242,72 @@ export default function HomePage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* LEFT COLUMN: Input & Data */}
-          <div className="lg:col-span-2 space-y-6">
+        {/* BENTO GRID LAYOUT */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+          {/* LEFT COLUMN: Main Operation */}
+          <div className="xl:col-span-2 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 {/* Navigation Cards (Mobile/Tablet Friendly) */}
+                 <Link href="/pos" className="block md:hidden">
+                    <Card className="hover:shadow-md transition-all border-l-4 border-l-sky-500 cursor-pointer h-full">
+                        <CardHeader className="p-4 flex flex-row items-center justify-between space-y-0">
+                            <CardTitle className="text-base font-bold text-sky-700">Vào trang Bán hàng</CardTitle>
+                            <Coffee className="w-5 h-5 text-sky-500" />
+                        </CardHeader>
+                    </Card>
+                 </Link>
+                 <Link href="/reports" className="block md:hidden">
+                    <Card className="hover:shadow-md transition-all border-l-4 border-l-emerald-500 cursor-pointer h-full">
+                        <CardHeader className="p-4 flex flex-row items-center justify-between space-y-0">
+                            <CardTitle className="text-base font-bold text-emerald-700">Xem Báo cáo</CardTitle>
+                            <FileText className="w-5 h-5 text-emerald-500" />
+                        </CardHeader>
+                    </Card>
+                 </Link>
+            </div>
+
             {/* Upload Card */}
-            <Card>
-              <CardHeader>
+            <Card className="overflow-hidden border-0 shadow-sm ring-1 ring-slate-200">
+              <CardHeader className="bg-gradient-to-r from-slate-50 to-white border-b border-slate-100">
                 <CardTitle className="flex items-center gap-2">
-                  <FileSpreadsheet className="w-5 h-5 text-emerald-600" />
+                  <div className="p-1.5 bg-emerald-100 rounded text-emerald-600">
+                    <FileSpreadsheet className="w-5 h-5" />
+                  </div>
                   Nhập dữ liệu bán hàng
                 </CardTitle>
                 <CardDescription>
                   Upload file Excel xuất từ phần mềm bán hàng (.xls, .xlsx)
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="border-2 border-dashed border-slate-200 rounded-lg p-8 text-center hover:bg-slate-50 transition-colors relative">
+              <CardContent className="p-6">
+                <div className="border-2 border-dashed border-slate-200 rounded-2xl p-10 text-center hover:bg-slate-50 transition-colors relative group cursor-pointer bg-slate-50/30">
                   <input
                     type="file"
                     accept=".xls,.xlsx"
                     onChange={(e) =>
                       e.target.files && handleFile(e.target.files[0])
                     }
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
                   />
-                  <div className="flex flex-col items-center gap-2 pointer-events-none">
-                    <div className="p-3 bg-emerald-100 rounded-full text-emerald-600">
-                      <Upload className="w-6 h-6" />
+                  <div className="flex flex-col items-center gap-3 pointer-events-none relative z-10">
+                    <div className="p-4 bg-white rounded-full text-emerald-600 shadow-sm ring-1 ring-emerald-100 group-hover:scale-110 transition-transform duration-300">
+                      <Upload className="w-8 h-8" />
                     </div>
                     {fileName ? (
-                      <div>
-                        <p className="font-semibold text-emerald-700">
+                      <div className="animate-in fade-in zoom-in duration-300">
+                        <p className="font-bold text-emerald-700 text-lg">
                           {fileName}
                         </p>
-                        <p className="text-xs text-muted-foreground">
-                          Nhấn để thay đổi file
+                        <p className="text-sm text-slate-500 mt-1">
+                          Nhấn để thay đổi file khác
                         </p>
                       </div>
                     ) : (
                       <div>
-                        <p className="font-medium">
+                        <p className="font-semibold text-slate-700 text-lg">
                           Kéo thả hoặc nhấn để chọn file
                         </p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-sm text-slate-500 mt-1">
                           Hỗ trợ định dạng Excel tiêu chuẩn
                         </p>
                       </div>
@@ -324,49 +319,57 @@ export default function HomePage() {
 
             {/* Data Table */}
             {rows.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Chi tiết đơn hàng ({rows.length})</CardTitle>
+              <Card className="border-0 shadow-sm ring-1 ring-slate-200 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <CardHeader className="border-b bg-slate-50/50 pb-4">
+                  <div className="flex items-center justify-between">
+                     <CardTitle className="flex items-center gap-2 text-lg">
+                        <Package className="w-5 h-5 text-primary" />
+                        Chi tiết đơn hàng
+                     </CardTitle>
+                     <span className="px-2.5 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-bold">
+                        {rows.length} sản phẩm
+                     </span>
+                  </div>
                 </CardHeader>
-                <CardContent className="p-0 overflow-hidden">
-                  <div className="max-h-[500px] overflow-auto">
+                <CardContent className="p-0">
+                  <div className="max-h-[500px] overflow-auto scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
                     <table className="w-full text-sm">
-                      <thead className="bg-slate-50 sticky top-0 z-10">
+                      <thead className="bg-slate-50/80 backdrop-blur sticky top-0 z-10 shadow-sm font-code">
                         <tr>
-                          <th className="px-4 py-3 text-left font-medium text-muted-foreground border-b">
+                          <th className="px-6 py-4 text-left font-semibold text-slate-600 border-b">
                             Mã hàng
                           </th>
-                          <th className="px-4 py-3 text-left font-medium text-muted-foreground border-b">
+                          <th className="px-6 py-4 text-left font-semibold text-slate-600 border-b">
                             Tên sản phẩm
                           </th>
-                          <th className="px-4 py-3 text-right font-medium text-muted-foreground border-b">
+                          <th className="px-6 py-4 text-right font-semibold text-slate-600 border-b">
                             Số lượng
                           </th>
-                          <th className="px-4 py-3 text-right font-medium text-muted-foreground border-b">
+                          <th className="px-6 py-4 text-right font-semibold text-slate-600 border-b">
                             Cost/đơn
                           </th>
-                          <th className="px-4 py-3 text-right font-medium text-muted-foreground border-b">
+                          <th className="px-6 py-4 text-right font-semibold text-slate-600 border-b">
                             Tổng Cost
                           </th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y">
+                      <tbody className="divide-y divide-slate-100">
                         {rows.map((r, i) => (
                           <tr
                             key={i}
-                            className="hover:bg-slate-50/50 transition-colors"
+                            className="hover:bg-blue-50/50 transition-colors group"
                           >
-                            <td className="px-4 py-3 font-mono text-xs">
+                            <td className="px-6 py-3.5 font-mono text-xs text-slate-500 group-hover:text-blue-600 font-medium">
                               {r.product_code}
                             </td>
-                            <td className="px-4 py-3">{r.product_name}</td>
-                            <td className="px-4 py-3 text-right font-medium">
+                            <td className="px-6 py-3.5 font-medium text-slate-700">{r.product_name}</td>
+                            <td className="px-6 py-3.5 text-right font-bold text-slate-600 bg-slate-50/50">
                               {r.quantity}
                             </td>
-                            <td className="px-4 py-3 text-right text-muted-foreground">
+                            <td className="px-6 py-3.5 text-right text-slate-500 tabular-nums">
                               {r.costUnit.toLocaleString()}
                             </td>
-                            <td className="px-4 py-3 text-right font-medium">
+                            <td className="px-6 py-3.5 text-right font-bold text-rose-600 tabular-nums">
                               {r.cost.toLocaleString()}
                             </td>
                           </tr>
@@ -382,85 +385,119 @@ export default function HomePage() {
           {/* RIGHT COLUMN: Cost Inputs & Result */}
           <div className="space-y-6">
             {/* Cost Configuration */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Chi phí vận hành</CardTitle>
+            <Card className="border-0 shadow-lg shadow-slate-200/50 ring-1 ring-slate-200 h-fit sticky top-6">
+              <CardHeader className="bg-primary/5 border-b border-primary/10 pb-4">
+                <CardTitle className="text-primary flex items-center gap-2">
+                    <Wallet className="w-5 h-5" />
+                    Chi phí vận hành
+                </CardTitle>
                 <CardDescription>
-                  Nhập các chi phí thực tế trong tháng
+                  Nhập các chi phí thực tế trong tháng để tính lãi lỗ
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium mb-1 block text-slate-700">
-                    Khoảng thời gian báo cáo (Tuỳ chọn)
+              <CardContent className="space-y-5 p-6">
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3">
+                  <label className="text-xs font-bold uppercase text-slate-400 tracking-wider mb-2 block">
+                    1. Cấu hình thời gian
                   </label>
-                  <div className="flex gap-2">
-                    <div className="flex-1">
-                      <input
-                        type="date"
-                        className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        value={reportStartDate}
-                        onChange={(e) => setReportStartDate(e.target.value)}
-                        placeholder="Từ ngày"
-                      />
+                  <div className="flex gap-2 mb-3">
+                     <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => setQuickDate('this_month')}
+                        className="text-xs h-7 px-2 border-slate-200 text-slate-600 hover:bg-primary/5 hover:text-primary hover:border-primary/30 transition-all font-medium"
+                     >
+                        Tháng này
+                     </Button>
+                     <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => setQuickDate('last_month')}
+                        className="text-xs h-7 px-2 border-slate-200 text-slate-600 hover:bg-primary/5 hover:text-primary hover:border-primary/30 transition-all font-medium"
+                     >
+                        Tháng trước
+                     </Button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                        <span className="text-xs text-slate-500 font-medium ml-1 flex items-center gap-1">
+                            Từ ngày
+                        </span>
+                        <div className="relative">
+                            <input
+                                type="date"
+                                className="flex w-full rounded-lg border border-slate-200 bg-white pl-3 pr-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm"
+                                value={reportStartDate}
+                                onChange={(e) => setReportStartDate(e.target.value)}
+                            />
+                        </div>
                     </div>
-                    <div className="flex-1">
-                      <input
-                        type="date"
-                        className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        value={reportEndDate}
-                        onChange={(e) => setReportEndDate(e.target.value)}
-                        placeholder="Đến ngày"
-                      />
+                    <div className="space-y-1">
+                         <span className="text-xs text-slate-500 font-medium ml-1 flex items-center gap-1">
+                            Đến ngày
+                        </span>
+                        <div className="relative">
+                            <input
+                                type="date"
+                                className="flex w-full rounded-lg border border-slate-200 bg-white pl-3 pr-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm"
+                                value={reportEndDate}
+                                onChange={(e) => setReportEndDate(e.target.value)}
+                            />
+                        </div>
                     </div>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Nếu để trống sẽ lấy thời gian hiện tại
-                  </p>
+                  
+                  <div className="flex items-center space-x-2 pt-2 border-t border-slate-200/50 mt-2">
+                    <input
+                        type="checkbox"
+                        id="includeInCashFlow"
+                        checked={includeInCashFlow}
+                        onChange={(e) => setIncludeInCashFlow(e.target.checked)}
+                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+                    />
+                    <label
+                        htmlFor="includeInCashFlow"
+                        className="text-sm font-medium leading-none cursor-pointer select-none text-slate-700"
+                    >
+                        Tính vào tổng dòng tiền
+                    </label>
+                  </div>
                 </div>
 
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="includeInCashFlow"
-                    checked={includeInCashFlow}
-                    onChange={(e) => setIncludeInCashFlow(e.target.checked)}
-                    className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-600"
-                  />
-                  <label
-                    htmlFor="includeInCashFlow"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
-                    Tính vào dòng tiền
-                  </label>
+                <div className="space-y-4">
+                     <label className="text-xs font-bold uppercase text-slate-400 tracking-wider block">
+                        2. Nhập liệu tài chính
+                    </label>
+                    <InputMoney label="Doanh thu tổng (VNĐ)" set={setRevenue} value={revenue} className="text-lg font-bold text-primary" />
+                    <div className="h-px bg-slate-100 my-2"></div>
+                    <div className="space-y-3">
+                        <InputMoney label="Lương nhân viên" set={setSalary} value={salary} />
+                        <InputMoney label="Điện / Nước / Net" set={setElectric} value={electric} />
+                        <InputMoney label="Chi phí khác" set={setOther} value={other} />
+                    </div>
                 </div>
-                <InputMoney label="Doanh thu tổng (VNĐ)" set={setRevenue} />
-                <div className="border-t my-2"></div>
-                <InputMoney label="Lương nhân viên" set={setSalary} />
-                <InputMoney label="Điện / Nước / Net" set={setElectric} />
-                <InputMoney label="Chi phí khác" set={setOther} />
               </CardContent>
+
+              <div className="p-6 pt-0">
+                  <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 mb-6">
+                        <ResultTable
+                        revenue={revenue}
+                        materialCost={materialCost}
+                        salary={salary}
+                        electric={electric}
+                        other={other}
+                        />
+                  </div>
+
+                <Button
+                    onClick={handleSaveReport}
+                    className="w-full h-12 gap-2 bg-cta hover:bg-orange-600 text-white shadow-lg shadow-orange-200 rounded-xl text-lg font-bold transition-all hover:-translate-y-1"
+                >
+                    <Save className="w-5 h-5" />
+                    Lưu Báo Cáo
+                </Button>
+              </div>
             </Card>
-
-            {/* Final Result */}
-            <ResultTable
-              revenue={revenue}
-              materialCost={materialCost}
-              salary={salary}
-              electric={electric}
-              other={other}
-            />
-
-            {/* Actions */}
-            <div className="flex gap-2 justify-end">
-              <Button
-                onClick={handleSaveReport}
-                className="gap-2 bg-emerald-600 hover:bg-emerald-700"
-              >
-                <Save className="w-4 h-4" />
-                Lưu báo cáo
-              </Button>
-            </div>
           </div>
         </div>
       </div>
