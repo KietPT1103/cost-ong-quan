@@ -25,6 +25,8 @@ import ShiftDetailModal, { Shift } from "@/app/timesheet/ShiftDetailModal";
 import { Button } from "@/components/ui/Button";
 import { debounce } from "lodash";
 import InputMoney from "@/components/InputMoney";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/Card";
+import { cn } from "@/lib/utils";
 
 export default function PayrollDetail({
   payrollId,
@@ -536,15 +538,6 @@ export default function PayrollDetail({
     <div className="space-y-4 relative">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onBack}
-            className="gap-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Quay lại
-          </Button>
           <h2 className="text-xl font-bold text-slate-800">
             Chi tiết bảng lương
           </h2>
@@ -592,17 +585,19 @@ export default function PayrollDetail({
 
         <div className="relative">
           <Button
-            variant="outline"
-            size="icon"
-            className="bg-white"
+            variant="ghost"
+            size="sm"
+            className="gap-2 text-slate-600 hover:text-emerald-600 hover:bg-emerald-50"
             onClick={() => setShowColumnSelector(!showColumnSelector)}
             title="Ẩn/Hiện cột"
           >
-            <Eye className="w-4 h-4 text-slate-600" />
+            <Eye className="w-4 h-4" />
+            <span className="text-sm font-medium">Hiển thị cột</span>
           </Button>
           {showColumnSelector && (
-            <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-xl border border-slate-200 p-2 z-50 animate-in fade-in zoom-in-95">
+            <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-100 p-3 z-50 animate-in fade-in zoom-in-95 ring-1 ring-slate-200">
               <div className="space-y-1">
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 px-2">Cột hiển thị</p>
                 <label className="flex items-center gap-2 p-2 hover:bg-slate-50 rounded cursor-pointer">
                   <input
                     type="checkbox"
@@ -721,190 +716,209 @@ export default function PayrollDetail({
         </div>
       </div>
 
-      <div className="border rounded-lg overflow-hidden bg-white shadow-sm">
-        <div className="overflow-x-auto max-h-[calc(100vh-200px)] overflow-y-auto">
+
+
+      <Card className="border-0 shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white">
+        <div className="overflow-x-auto max-h-[calc(100vh-220px)] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
           <table className="w-full text-sm">
-            <thead className="bg-yellow-300 border-b-2 border-slate-200 text-slate-900 sticky top-0 z-10">
+            <thead className="bg-slate-50/80 backdrop-blur sticky top-0 z-20 shadow-sm border-b border-slate-200">
               <tr>
                 {visibleColumns.name && (
                   <th
-                    className="px-4 py-3 text-left font-bold border-r w-[180px] cursor-pointer hover:bg-yellow-400 transition-colors"
+                    className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-500 cursor-pointer hover:bg-slate-100 transition-colors whitespace-nowrap"
                     onClick={() => handleSort("employeeName")}
                   >
-                    Tên Nhân Viên{" "}
-                    {sortConfig.key === "employeeName" &&
-                      (sortConfig.direction === "asc" ? "▲" : "▼")}
+                    <div className="flex items-center gap-1">
+                        Tên Nhân Viên
+                        {sortConfig.key === "employeeName" &&
+                        (sortConfig.direction === "asc" ? "▲" : "▼")}
+                    </div>
                   </th>
                 )}
                 {visibleColumns.role && (
                   <th
-                    className="px-4 py-3 text-center font-bold border-r w-[110px] cursor-pointer hover:bg-yellow-400 transition-colors"
+                    className="px-3 py-3 text-center text-xs font-bold uppercase tracking-wider text-slate-500 cursor-pointer hover:bg-slate-100 transition-colors whitespace-nowrap"
                     onClick={() => handleSort("role")}
                   >
-                    Vai Trò{" "}
-                    {sortConfig.key === "role" &&
-                      (sortConfig.direction === "asc" ? "▲" : "▼")}
+                    <div className="flex items-center justify-center gap-1">
+                        Vai Trò
+                        {sortConfig.key === "role" &&
+                        (sortConfig.direction === "asc" ? "▲" : "▼")}
+                    </div>
                   </th>
                 )}
                 {visibleColumns.hours && (
-                  <th className="px-4 py-3 text-right font-bold border-r w-[120px]">
+                  <th className="px-3 py-3 text-right text-xs font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap">
                     Số Giờ
                   </th>
                 )}
                 {visibleColumns.rate && (
                   <th
-                    className="px-4 py-3 text-right font-bold border-r w-[110px] cursor-pointer hover:bg-yellow-400 transition-colors"
+                    className="px-3 py-3 text-right text-xs font-bold uppercase tracking-wider text-slate-500 cursor-pointer hover:bg-slate-100 transition-colors whitespace-nowrap"
                     onClick={() => handleSort("hourlyRate")}
                   >
-                    Lương/h{" "}
-                    {sortConfig.key === "hourlyRate" &&
-                      (sortConfig.direction === "asc" ? "▲" : "▼")}
+                     <div className="flex items-center justify-end gap-1">
+                        Lương/h
+                        {sortConfig.key === "hourlyRate" &&
+                        (sortConfig.direction === "asc" ? "▲" : "▼")}
+                    </div>
                   </th>
                 )}
                 {visibleColumns.bonus && (
-                  <th className="px-4 py-3 text-right font-bold border-r w-[100px]">
-                    Bonus
-                    <br />
-                    <span className="text-[10px] font-normal">(Cuối tuần)</span>
+                  <th className="px-3 py-3 text-right text-xs font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap">
+                    <div>
+                        Bonus
+                        <span className="block text-[9px] font-normal text-slate-400 capitalize mt-0.5">(Cuối tuần)</span>
+                    </div>
                   </th>
                 )}
                 {visibleColumns.allowance && (
-                  <th className="px-4 py-3 text-left font-bold border-r w-[130px]">
+                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap">
                     Phụ cấp
                   </th>
                 )}
                 {visibleColumns.total && (
                   <th
-                    className="px-4 py-3 text-right font-bold border-r w-[140px] cursor-pointer hover:bg-yellow-400 transition-colors"
+                    className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider text-emerald-600 cursor-pointer hover:bg-slate-100 transition-colors whitespace-nowrap"
                     onClick={() => handleSort("salary")}
                   >
-                    Tổng Tiền{" "}
-                    {sortConfig.key === "salary" &&
-                      (sortConfig.direction === "asc" ? "▲" : "▼")}
+                    <div className="flex items-center justify-end gap-1">
+                        Tổng Tiền
+                        {sortConfig.key === "salary" &&
+                        (sortConfig.direction === "asc" ? "▲" : "▼")}
+                    </div>
                   </th>
                 )}
                 {visibleColumns.note && (
-                  <th className="px-4 py-3 text-left font-bold min-w-[200px]">
+                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-500 min-w-[200px] whitespace-nowrap">
                     Ghi chú
                   </th>
                 )}
               </tr>
             </thead>
-            <tbody className="divide-y">
+            <tbody className="divide-y divide-slate-100">
               {filteredEntries.map((entry, index) => (
                 <tr
                   key={entry.id}
-                  className={`group hover:bg-slate-50 ${
-                    entry.salaryType === "fixed" ? "bg-blue-50/50" : ""
+                  className={`group hover:bg-slate-50/80 transition-all duration-200 ${
+                    entry.salaryType === "fixed" ? "bg-blue-50/30" : ""
                   }`}
                 >
                   {visibleColumns.name && (
-                    <td className="px-2 py-2 font-medium border-r relative">
-                      <div className="flex items-center gap-1">
+                    <td className="px-4 py-3 font-medium relative whitespace-nowrap">
+                      <div className="flex items-center gap-2">
                         {entry.shifts &&
                           entry.shifts.some(
                             (s) => !s.isValid || !s.inTime || !s.outTime
                           ) && (
                             <div
-                              className="text-red-500 cursor-help"
+                              className="text-amber-500 cursor-help"
                               title="Có ca làm việc lỗi hoặc chưa đủ thông tin"
                             >
-                              <AlertCircle size={14} />
+                              <AlertCircle size={16} />
                             </div>
                           )}
-                        <Input
-                          value={entry.employeeName}
-                          onChange={(e) =>
-                            handleUpdateById(
-                              entry.id!,
-                              "employeeName",
-                              e.target.value
-                            )
-                          }
-                          className={`h-8 border-transparent focus:border-input bg-transparent shadow-none pr-8 ${
-                            entry.shifts &&
-                            entry.shifts.some(
-                              (s) => !s.isValid || !s.inTime || !s.outTime
-                            )
-                              ? "text-red-600 font-bold"
-                              : ""
-                          }`}
-                        />
+                        <div className="relative group/input w-full min-w-[120px]">
+                            <input
+                            type="text"
+                            value={entry.employeeName}
+                            onChange={(e) =>
+                                handleUpdateById(
+                                entry.id!,
+                                "employeeName",
+                                e.target.value
+                                )
+                            }
+                            className={`w-full bg-transparent border-0 border-b border-transparent focus:border-emerald-500 focus:ring-0 p-0 h-auto text-sm font-semibold text-slate-700 placeholder:text-slate-400 group-hover/input:border-slate-200 transition-colors ${
+                                entry.shifts &&
+                                entry.shifts.some(
+                                (s) => !s.isValid || !s.inTime || !s.outTime
+                                )
+                                ? "text-amber-600"
+                                : ""
+                            }`}
+                            placeholder="Tên nhân viên"
+                            />
+                        </div>
                       </div>
-                      <div className="absolute right-1 top-1/2 -translate-y-1/2 flex opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="absolute right-2 top-1/2 -translate-y-1/2 flex opacity-0 group-hover:opacity-100 transition-all duration-200 gap-1 bg-white/80 backdrop-blur-sm rounded-lg p-0.5 shadow-sm border border-slate-100 z-10">
                         <Button
                           variant="ghost"
                           size="icon"
                           onClick={() => openSettings(entry)}
-                          className="h-6 w-6 text-slate-400 hover:text-blue-600 hover:bg-transparent"
+                          className="h-7 w-7 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded"
                           title="Cấu hình lương"
                         >
-                          <Settings className="w-3 h-3" />
+                          <Settings className="w-3.5 h-3.5" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon"
                           onClick={() => handleDeleteEntry(entry.id!)}
-                          className="h-6 w-6 text-slate-400 hover:text-red-500 hover:bg-transparent"
+                          className="h-7 w-7 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded"
                           title="Xóa nhân viên này"
                         >
-                          <Trash2 className="w-3 h-3" />
+                          <Trash2 className="w-3.5 h-3.5" />
                         </Button>
                       </div>
                     </td>
                   )}
                   {visibleColumns.role && (
-                    <td className="px-2 py-2 border-r text-center">
-                      <RoleSelect
-                        className="w-full h-8 rounded-md border-transparent bg-transparent hover:bg-slate-100 px-1 text-xs text-center cursor-pointer focus:ring-1 focus:ring-emerald-500"
-                        value={entry.role}
-                        onChange={(e: any) =>
-                          handleUpdateById(entry.id!, "role", e.target.value)
-                        }
-                      />
+                    <td className="px-3 py-3 text-center">
+                      <div className="relative inline-block w-full min-w-[80px]">
+                          <RoleSelect
+                            className="w-full appearance-none bg-transparent border-0 border-b border-transparent focus:border-emerald-500 focus:ring-0 text-xs font-medium text-slate-500 text-center hover:text-slate-700 cursor-pointer py-1 transition-colors hover:bg-slate-100/50 rounded"
+                            value={entry.role}
+                            onChange={(e: any) =>
+                            handleUpdateById(entry.id!, "role", e.target.value)
+                            }
+                        />
+                      </div>
                     </td>
                   )}
                   {visibleColumns.hours && (
-                    <td className="px-2 py-2 border-r relative group/cell">
-                      <input
-                        type="number"
-                        className="w-full text-right bg-transparent focus:outline-none focus:ring-1 focus:ring-emerald-500 rounded px-1 py-1 pr-7 no-spin"
-                        value={entry.totalHours || ""}
-                        onChange={(e) =>
-                          handleUpdateById(
-                            entry.id!,
-                            "totalHours",
-                            e.target.value
-                          )
-                        }
-                        placeholder="0"
-                      />
-                      <div className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover/cell:opacity-100 transition-opacity">
+                    <td className="px-3 py-3 relative group/cell">
+                      <div className="flex items-center justify-end">
+                          <input
+                            type="number"
+                            className="w-16 text-right bg-transparent border-0 border-b border-transparent focus:border-emerald-500 focus:ring-0 p-0 text-sm font-medium text-slate-600 focus:text-emerald-700 no-spin"
+                            value={entry.totalHours || ""}
+                            onChange={(e) =>
+                            handleUpdateById(
+                                entry.id!,
+                                "totalHours",
+                                e.target.value
+                            )
+                            }
+                            placeholder="0"
+                          />
+                      </div>
+                      <div className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover/cell:opacity-100 transition-opacity bg-white/80 backdrop-blur rounded-lg z-10">
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-6 w-6 text-indigo-500 hover:bg-indigo-50"
+                          className="h-7 w-7 text-indigo-500 hover:bg-indigo-50 hover:scale-110 transition-transform"
                           onClick={() => handleOpenShiftModal(entry)}
                           title="Xem/Sửa chi tiết chấm công"
                         >
-                          <CalendarClock className="w-3.5 h-3.5" />
+                          <CalendarClock className="w-4 h-4" />
                         </Button>
                       </div>
                     </td>
                   )}
                   {visibleColumns.rate && (
-                    <td className="px-2 py-2 text-right border-r font-mono text-slate-500">
+                    <td className="px-3 py-3 text-right">
                       {entry.salaryType === "fixed" ? (
                         <div
-                          className="cursor-help text-xs"
+                          className="cursor-help text-xs inline-flex flex-col items-end"
                           title={`Lương cứng: ${entry.fixedSalary?.toLocaleString()}đ\nĐịnh mức: ${
                             entry.standardHours
                           }h\nOT: ${entry.hourlyRate.toLocaleString()}đ/h`}
                         >
-                          <span className="font-bold text-blue-600">Fixed</span>
-                          <div className="text-[10px]">
+                          <span className="font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded text-[10px] uppercase tracking-wider whitespace-nowrap">Fixed</span>
+                          <span className="text-[10px] text-slate-400 mt-0.5 whitespace-nowrap">
                             {entry.hourlyRate.toLocaleString()} (OT)
-                          </div>
+                          </span>
                         </div>
                       ) : (
                         <InputMoney
@@ -912,16 +926,16 @@ export default function PayrollDetail({
                           set={(val) =>
                             handleUpdateById(entry.id!, "hourlyRate", val)
                           }
-                          className="h-8 border-transparent bg-transparent shadow-none text-right px-1 no-spin"
+                          className="h-auto py-0 border-0 border-b border-transparent focus:border-emerald-500 focus:ring-0 bg-transparent text-right px-0 text-sm text-slate-500 font-mono w-[90px]"
                         />
                       )}
                     </td>
                   )}
                   {visibleColumns.bonus && (
-                    <td className="px-2 py-2 border-r">
+                    <td className="px-3 py-3 text-right">
                       <input
                         type="number"
-                        className="w-full text-right bg-transparent focus:outline-none focus:ring-1 focus:ring-emerald-500 rounded px-1 py-1 no-spin"
+                        className="w-full text-right bg-transparent border-0 border-b border-transparent focus:border-emerald-500 focus:ring-0 p-0 text-sm text-slate-600 no-spin"
                         value={entry.weekendHours || ""}
                         onChange={(e) =>
                           handleUpdateById(
@@ -936,15 +950,15 @@ export default function PayrollDetail({
                   )}
                   {visibleColumns.allowance && (
                     <td
-                      className="px-2 py-2 border-r cursor-pointer hover:bg-slate-100 transition-colors"
+                      className="px-4 py-3 cursor-pointer hover:bg-slate-100/50 transition-colors"
                       onClick={() => openAllowanceModal(entry)}
                     >
-                      <div className="flex flex-wrap gap-1">
+                      <div className="flex flex-wrap gap-1.5 min-h-[24px] items-center">
                         {entry.allowances && entry.allowances.length > 0 ? (
                           entry.allowances.map((a, i) => (
                             <span
                               key={i}
-                              className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-700 cursor-help"
+                              className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-100 whitespace-nowrap"
                               title={`${
                                 a.name
                               }: ${a.amount.toLocaleString()} ₫`}
@@ -953,28 +967,31 @@ export default function PayrollDetail({
                             </span>
                           ))
                         ) : (
-                          <span className="text-slate-400 text-xs italic pl-2">
-                            + Thêm
+                          <span className="text-slate-300 text-xs hover:text-emerald-500 transition-colors group/add flex items-center gap-1 whitespace-nowrap">
+                            <Plus className="w-3 h-3" /> Phụ cấp
                           </span>
                         )}
                       </div>
                     </td>
                   )}
                   {visibleColumns.total && (
-                    <td className="px-4 py-2 text-right border-r font-bold text-emerald-700">
+                    <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-2">
                         {savingId === entry.id && (
                           <Loader2 className="w-3 h-3 animate-spin text-emerald-500" />
                         )}
-                        {entry.salary?.toLocaleString()} ₫
+                        <span className="font-bold text-emerald-600 text-sm tabular-nums tracking-tight whitespace-nowrap">
+                            {entry.salary?.toLocaleString()}
+                        </span>
+                        <span className="text-xs text-slate-400 font-semibold">₫</span>
                       </div>
                     </td>
                   )}
                   {visibleColumns.note && (
-                    <td className="px-2 py-2">
+                    <td className="px-4 py-3">
                       <input
                         type="text"
-                        className="w-full bg-transparent focus:outline-none focus:ring-1 focus:ring-emerald-500 rounded px-1 py-1 text-slate-600 italic text-xs"
+                        className="w-full bg-transparent border-0 border-b border-transparent focus:border-emerald-500 focus:ring-0 p-0 text-slate-500 italic text-xs min-w-[150px]"
                         value={entry.note || ""}
                         onChange={(e) =>
                           handleUpdateById(entry.id!, "note", e.target.value)
@@ -991,42 +1008,44 @@ export default function PayrollDetail({
                     colSpan={
                       Object.values(visibleColumns).filter(Boolean).length
                     }
-                    className="p-2 bg-slate-50 border-t"
+                    className="p-4 bg-slate-50/50 border-t border-slate-100"
                   >
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="sm"
                       onClick={handleAddEntry}
-                      className="w-full text-slate-500 hover:text-emerald-600 border border-dashed border-slate-300 hover:border-emerald-500 hover:bg-emerald-50 gap-2"
+                      className="w-full text-slate-500 hover:text-emerald-700 border-dashed border-slate-300 hover:border-emerald-400 hover:bg-emerald-50/50 gap-2 h-10 font-medium transition-all"
                     >
-                      <Plus className="w-4 h-4" />
+                      <div className="flex items-center justify-center p-1 bg-emerald-100 text-emerald-600 rounded-full">
+                        <Plus className="w-3.5 h-3.5" />
+                      </div>
                       Thêm nhân viên vào bảng lương này
                     </Button>
                   </td>
                 </tr>
               )}
             </tbody>
-            <tfoot className="bg-slate-50 font-bold border-t sticky bottom-0 z-10">
+            <tfoot className="bg-slate-50 border-t border-slate-200 sticky bottom-0 z-20 shadow-[0_-4px_6px_-2px_rgba(0,0,0,0.05)]">
               <tr>
                 {colSpanBeforeTotal > 0 && (
                   <td
                     colSpan={colSpanBeforeTotal}
-                    className="px-4 py-3 text-right"
+                    className="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wider"
                   >
-                    TỔNG CỘNG:
+                    Tổng cộng:
                   </td>
                 )}
                 {visibleColumns.total && (
-                  <td className="px-4 py-3 text-right text-emerald-700 border-r">
+                  <td className="px-6 py-4 text-right text-base font-bold text-emerald-600">
                     {grandTotal.toLocaleString()} ₫
                   </td>
                 )}
-                {visibleColumns.note && <td></td>}
+                {visibleColumns.note && <td className="px-6 py-4"></td>}
               </tr>
             </tfoot>
           </table>
         </div>
-      </div>
+      </Card>
 
       {/* Allowance Modal / Dialog */}
       {selectedEntryIndex !== null && (
