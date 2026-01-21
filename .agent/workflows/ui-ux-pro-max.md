@@ -10,22 +10,7 @@ Check if Python is installed:
 python3 --version || python --version
 ```
 
-If Python is not installed, install it based on user's OS:
-
-**macOS:**
-```bash
-brew install python3
-```
-
-**Ubuntu/Debian:**
-```bash
-sudo apt update && sudo apt install python3
-```
-
-**Windows:**
-```powershell
-winget install Python.Python.3.12
-```
+If Python is not installed, ask the user before installing it. If installs require network access or special approval, request approval or offer a manual fallback.
 
 ---
 
@@ -39,7 +24,7 @@ Extract key information from user request:
 - **Product type**: SaaS, e-commerce, portfolio, dashboard, landing page, etc.
 - **Style keywords**: minimal, playful, professional, elegant, dark mode, etc.
 - **Industry**: healthcare, fintech, gaming, education, etc.
-- **Stack**: React, Vue, Next.js, or default to `html-tailwind`
+- **Stack**: React, Vue, Next.js, or default to `html-tailwind` only after confirming the codebase
 
 ### Step 2: Generate Design System (REQUIRED)
 
@@ -60,6 +45,8 @@ This command:
 python3 .shared/ui-ux-pro-max/scripts/search.py "beauty spa wellness service" --design-system -p "Serenity Spa"
 ```
 
+**Fallback if scripts are unavailable:** build a lightweight design system manually (palette, type scale, spacing scale, radii, shadows, and button styles) and proceed with Step 3 and Step 4 using the same keywords.
+
 ### Step 2b: Persist Design System (Master + Overrides Pattern)
 
 To save the design system for hierarchical retrieval across sessions, add `--persist`:
@@ -69,8 +56,8 @@ python3 .shared/ui-ux-pro-max/scripts/search.py "<query>" --design-system --pers
 ```
 
 This creates:
-- `design-system/MASTER.md` — Global Source of Truth with all design rules
-- `design-system/pages/` — Folder for page-specific overrides
+- `design-system/MASTER.md` - Global Source of Truth with all design rules
+- `design-system/pages/` - Folder for page-specific overrides
 
 **With page-specific override:**
 ```bash
@@ -78,7 +65,7 @@ python3 .shared/ui-ux-pro-max/scripts/search.py "<query>" --design-system --pers
 ```
 
 This also creates:
-- `design-system/pages/dashboard.md` — Page-specific deviations from Master
+- `design-system/pages/dashboard.md` - Page-specific deviations from Master
 
 **How hierarchical retrieval works:**
 1. When building a specific page (e.g., "Checkout"), first check `design-system/pages/checkout.md`
@@ -112,7 +99,6 @@ python3 .shared/ui-ux-pro-max/scripts/search.py "<keyword>" --stack html-tailwin
 ```
 
 Available stacks: `html-tailwind`, `react`, `nextjs`, `vue`, `svelte`, `swiftui`, `react-native`, `flutter`, `shadcn`, `jetpack-compose`
-, `jetpack-compose`
 ---
 
 ## Search Reference
@@ -151,7 +137,7 @@ Available stacks: `html-tailwind`, `react`, `nextjs`, `vue`, `svelte`, `swiftui`
 
 ## Example Workflow
 
-**User request:** "Làm landing page cho dịch vụ chăm sóc da chuyên nghiệp"
+**User request:** "Lam landing page cho dich vu cham soc da chuyen nghiep"
 
 ### Step 1: Analyze Requirements
 - Product type: Beauty/Spa service
@@ -220,7 +206,7 @@ These are frequently overlooked issues that make UI look unprofessional:
 
 | Rule | Do | Don't |
 |------|----|----- |
-| **No emoji icons** | Use SVG icons (Heroicons, Lucide, Simple Icons) | Use emojis like 🎨 🚀 ⚙️ as UI icons |
+| **No emoji icons** | Use SVG icons (Heroicons, Lucide, Simple Icons) | Use emojis as UI icons |
 | **Stable hover states** | Use color/opacity transitions on hover | Use scale transforms that shift layout |
 | **Correct brand logos** | Research official SVG from Simple Icons | Guess or use incorrect logo paths |
 | **Consistent icon sizing** | Use fixed viewBox (24x24) with w-6 h-6 | Mix different icon sizes randomly |
@@ -286,3 +272,5 @@ Before delivering UI code, verify these items:
 - [ ] Form inputs have labels
 - [ ] Color is not the only indicator
 - [ ] `prefers-reduced-motion` respected
+
+

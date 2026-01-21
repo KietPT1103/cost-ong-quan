@@ -15,8 +15,9 @@ Before writing any code, you must deeply understand the current component.
     *   Is it **Vue**? (Check for `<template>`, `<script setup>`)
     *   Is it **React**? (Check for `jsx`, `tsx`, hooks)
     *   Is it **TypeScript**? (Look for `lang="ts"` or `.tsx`)
-    *   **Tailwind Config**: Check `tailwind.config.js` or `globals.css` for custom tokens (colors, fonts). Don't guess; look for defined themes.
+    *   **Tailwind Config**: Check `tailwind.config.*` or `globals.css` for custom tokens (colors, fonts). Don't guess; look for defined themes.
     *   **Icon Library**: Check `package.json` or imports to find the existing icon set (Lucide, Heroicons, etc.). Do not introduce a new library.
+    *   **Styling Approach**: Determine if styles are Tailwind, CSS Modules, CSS-in-JS, or plain CSS, and follow the existing pattern.
 3.  **Reference Image Audit (If Provided)**:
     *   Identify layout, spacing rhythm, typography, colors, elevation, and interactive states from the image.
     *   Extract primary measurements (e.g., card radius, gaps, padding) and translate them into Tailwind or CSS tokens.
@@ -46,7 +47,7 @@ Don't just blindly follow the user's instruction. **Improve it.**
 ## Phase 3: Implementation Rules
 
 ### Universal Rules (All Frameworks)
-*   **No Magic Numbers**: Avoid `width: 350px`. Use relative units/Tailwind classes (`w-full`, `max-w-md`).
+*   **No Magic Numbers**: Avoid `width: 350px` unless matching an existing design system spec. Prefer relative units/Tailwind classes (`w-full`, `max-w-md`).
 *   **Semantic HTML**: Use `<header>`, `<main>`, `<footer>`, `<section>` where appropriate.
 *   **Mobile-First**: Write base classes for mobile, then `md:` for desktop.
 *   **Consistency**: Keep typography, spacing, radius, and shadow consistent across the component.
@@ -69,7 +70,7 @@ Don't just blindly follow the user's instruction. **Improve it.**
 *   **Tokens**: Use project config colors (e.g., `bg-primary`) over arbitrary values (`bg-[#123456]`).
 *   **Effects**: Prefer `transition duration-200` on interactive elements; use `transition-all` only when needed.
 *   **Pseudo-states**: Define `hover`, `active`, and `focus-visible` for interactive elements.
-*   **Fallback**: If Tailwind is not used, add minimal, scoped CSS to match the intended design.
+*   **Fallback**: If Tailwind is not used, add minimal, scoped CSS (or the current styling approach) to match the intended design.
 
 ## Phase 4: Execution & Verification
 

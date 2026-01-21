@@ -6,13 +6,13 @@ This workflow guides the agent to fix a bug based on a provided link (GitHub Iss
 
 1.  **Acquire Bug Details**:
     -   **Input**: The user provides a link, text, or **a local file path**.
-    -   **Action**: Try to read the content.
+    -   **Action**: Try to read the content using the available tools in this environment.
         -   If it is a **link** (e.g., `https://github.com/...` or `docs.google.com/...`):
-            -   Use `read_url_content` or `browser_subagent` to fetch the description.
+            -   Use a browsing or URL-reading tool if available to fetch the description.
             -   **Google Sheets Constraint**: If the link is a Google Sheet, **you MUST strictly adhere to the specific tab (Sheet associated with the `gid` in the URL)**. Do NOT switch to other tabs (e.g., avoid switching to "Slide _buglist" if the link points to "Toán học _ so sánh"). Only read the content of the currently active tab.
             -   **Image/Screenshot Detection (CRITICAL)**:
                 -   Check for attached images, screenshots, or video links (especially in Google Sheets "Image/Screenshot" columns).
-                -   **Action**: If an image is found (e.g., a Google Drive chip), use `browser_subagent` to **open the image link** and **describe the content** detailedly.
+                -   **Action**: If an image is found (e.g., a Google Drive chip), open the image link (with a browsing or image tool) and **describe the content** in detail.
                 -   **Goal**: Understand the bug visually (e.g., "The screenshot shows error X," "The UI alignment is off in header Y").
             -   **Video Limitation**:
                 -   If the link is a **Video** (e.g., Drive video, YouTube, Loom):
@@ -23,15 +23,21 @@ This workflow guides the agent to fix a bug based on a provided link (GitHub Iss
                     1.  **Print to PDF** or **Save as HTML** and provide the local file path.
                     2.  **Take a screenshot** of the issue and provide the file path.
         -   If it is a **Local File** (PDF, Image, HTML):
-            -   Use `view_file` (for text/code) or `browser_subagent` (for PDF/HTML/Images) to read the content.
+            -   Use a local file or image viewing tool to read the content.
             -   Extract the description and visual evidence just like a web link.
         -   **Fallback**: If reading fails, explicitly ask the user to copy and paste the text.
     -   **Goal**: Obtain a clear text description of the bug AND visual evidence (if available) to understand reproduction steps and expected outcome.
 
-2.  **Analyze & Locate**:
-    -   Based on the description, identify the relevant code files in the workspace.
-    -   Use `grep_search` or `find_by_name` to locate the components mentioned.
-    -   **Context**: Read the file contents (`view_file`) to understand the current implementation.
+2.  **Analyze, Group & Locate**:
+    -   **Multi-Task Handling**:
+        -   If the source (Sheet/Issue) contains multiple tasks/rows:
+            -   **EXTRACT ALL**: List all unique tasks/requirements found.
+            -   **GROUP BY SCREEN/FEATURE**: Analyze the requirements to identify which screen or feature they belong to (e.g., "Login Page", "Payroll Table", "Settings").
+            -   **BATCH STRATEGY**: Organize the work to fix **ALL issues for one screen/component at a time** before moving to the next. (e.g., "Fix all 3 Login bugs", then "Fix 2 Dashboard bugs"). This minimizes context switching.
+    -   **Locate Code (Per Batch)**:
+        -   For the *current batch* (Screen A), identify relevant code files.
+        -   Use fast search tools (e.g., ripgrep) to locate the components.
+    -   **Context**: Read the file contents to understand the current implementation.
 
 3.  **Formulate Fix Strategy (The "Skill")**:
     -   **Use Visual Evidence**: detailedly analyze the screenshots/images found in Step 1. Compare them with the current codebase/UI to confirm the issue.
@@ -46,7 +52,7 @@ This workflow guides the agent to fix a bug based on a provided link (GitHub Iss
 
 4.  **Implement Fix**:
     -   Create an `implementation_plan.md` if the change is complex.
-    -   Apply changes using `replace_file_content` (for single blocks) or `multi_replace_file_content`.
+    -   Apply changes using the available editing tools (prefer minimal, targeted edits).
 
 5.  **Verify**:
     -   Review the changes to ensure no side effects.
