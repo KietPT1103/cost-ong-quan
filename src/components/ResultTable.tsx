@@ -18,11 +18,8 @@ export default function ResultTable({
   salary,
   electric,
   other,
-  isEditing = false,
-  onUpdate,
 }: ResultTableProps) {
   const totalCost = materialCost + salary + electric + other;
-  const profit = revenue - totalCost;
 
   const percent = (value: number) =>
     revenue ? ((value / revenue) * 100).toFixed(1) : "0";
@@ -33,95 +30,57 @@ export default function ResultTable({
       currency: "VND",
     }).format(value);
 
-  const Row = ({
+  const ProgressRow = ({
     label,
     value,
-    p,
-    bold,
-    highlight,
-    field,
+    colorClass,
   }: {
     label: string;
     value: number;
-    p: string;
-    bold?: boolean;
-    highlight?: boolean;
-    field?: "revenue" | "salary" | "electric" | "other";
-  }) => (
-    <div
-      className={cn(
-        "flex justify-between items-center py-3 border-b last:border-0",
-        bold && "font-bold",
-        highlight && "text-primary text-lg"
-      )}
-    >
-      <span>{label}</span>
-      <div className="text-right">
-        {isEditing && field ? (
-          <Input
-            type="number"
-            value={value}
-            onChange={(e) => onUpdate?.(field, Number(e.target.value))}
-            className="w-32 text-right h-8"
-          />
-        ) : (
-          <>
-            <div className={cn("font-medium", highlight && "text-xl")}>
-              {formatMoney(value)}
-            </div>
-            <div className="text-xs text-muted-foreground">{p}% doanh thu</div>
-          </>
-        )}
+    colorClass: string;
+  }) => {
+    const p = parseFloat(percent(value));
+    
+    return (
+      <div className="space-y-2">
+        <div className="flex justify-between text-sm">
+          <span className="text-slate-600 font-medium">{label}</span>
+          <div className="flex items-center gap-2">
+             <span className="font-bold text-slate-900">{formatMoney(value)}</span>
+             <span className="text-xs text-slate-400 w-12 text-right">({p}%)</span>
+          </div>
+        </div>
+        <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+          <div 
+            className={cn("h-full rounded-full", colorClass)} 
+            style={{ width: `${Math.min(p, 100)}%` }}
+          ></div>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle>Kết quả kinh doanh</CardTitle>
+    <Card className="w-full overflow-hidden border-0 shadow-none ring-0 bg-transparent">
+      <CardHeader className="pb-4 px-0 pt-0">
+        <CardTitle className="text-sm font-bold uppercase text-slate-400 tracking-wider">Phân tích chi phí</CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-1">
-          <Row label="Doanh thu" value={revenue} p="100" bold field="revenue" />
-          <div className="my-4 border-t" />
-          <Row
-            label="Cost nguyên liệu"
-            value={materialCost}
-            p={percent(materialCost)}
-          />
-          <Row
-            label="Lương nhân viên"
-            value={salary}
-            p={percent(salary)}
-            field="salary"
-          />
-          <Row
-            label="Điện nước"
-            value={electric}
-            p={percent(electric)}
-            field="electric"
-          />
-          <Row
-            label="Chi phí khác"
-            value={other}
-            p={percent(other)}
-            field="other"
-          />
-          <div className="my-4 border-t" />
-          <Row
-            label="Tổng chi phí"
-            value={totalCost}
-            p={percent(totalCost)}
-            bold
-          />
-          <Row
-            label="Lợi nhuận ròng"
-            value={profit}
-            p={percent(profit)}
-            bold
-            highlight
-          />
+      <CardContent className="space-y-6 px-0">
+        <div className="space-y-5">
+            <ProgressRow label="Chi phí nguyên liệu (COGS)" value={materialCost} colorClass="bg-blue-500" />
+            <ProgressRow label="Lương nhân viên" value={salary} colorClass="bg-purple-500" />
+            <ProgressRow label="Điện / Nước / Net" value={electric} colorClass="bg-amber-500" />
+            <ProgressRow label="Chi phí khác" value={other} colorClass="bg-rose-500" />
+        </div>
+        
+        <div className="pt-4 border-t border-slate-200">
+            <div className="flex justify-between items-center">
+                <span className="text-slate-600 font-medium">Tổng chi phí vận hành</span>
+                <span className="text-slate-900 font-bold text-lg">{formatMoney(totalCost)}</span>
+            </div>
+             <div className="text-right mt-1">
+                 <span className="text-xs text-slate-400">{percent(totalCost)}% doanh thu</span>
+             </div>
         </div>
       </CardContent>
     </Card>

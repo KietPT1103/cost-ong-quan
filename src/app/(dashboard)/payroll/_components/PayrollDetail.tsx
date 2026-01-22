@@ -21,7 +21,7 @@ import {
   Eye,
   AlertCircle,
 } from "lucide-react";
-import ShiftDetailModal, { Shift } from "@/app/timesheet/ShiftDetailModal";
+import ShiftDetailModal, { Shift } from "@/app/(dashboard)/timesheet/ShiftDetailModal";
 import { Button } from "@/components/ui/Button";
 import { debounce } from "lodash";
 import InputMoney from "@/components/InputMoney";
