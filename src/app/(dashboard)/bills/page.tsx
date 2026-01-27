@@ -17,6 +17,7 @@ import {
   ReceiptText,
   Clock3,
 } from "lucide-react";
+import { toDate } from "@/lib/dates";
 
 import RoleGuard from "@/components/RoleGuard";
 
@@ -40,8 +41,7 @@ const formatDateInput = (date: Date) => {
   return local.toISOString().split("T")[0];
 };
 
-const getTimestampDate = (bill: Bill) =>
-  bill.createdAt?.seconds ? new Date(bill.createdAt.seconds * 1000) : undefined;
+const getTimestampDate = (bill: Bill) => toDate(bill.createdAt);
 
 export default function BillsPage() {
   const { storeId } = useStore();

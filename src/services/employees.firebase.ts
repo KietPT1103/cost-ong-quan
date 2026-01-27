@@ -1,16 +1,4 @@
-import { db } from "@/lib/firebase";
-import {
-  collection,
-  doc,
-  getDocs,
-  setDoc,
-  updateDoc,
-  deleteDoc,
-  serverTimestamp,
-  query,
-  where,
-  addDoc,
-} from "firebase/firestore";
+﻿import { api } from "@/lib/http";
 
 export type Employee = {
   id?: string;
@@ -18,37 +6,27 @@ export type Employee = {
   name: string;
   role: string;
   hourlyRate: number;
-  createdAt?: any;
+  createdAt?: unknown;
 };
 
-const COLLECTION_NAME = "employees";
-
 export async function getEmployees(storeId: string): Promise<Employee[]> {
-  const q = query(
-    collection(db, COLLECTION_NAME),
-    where("storeId", "==", storeId)
+  const data = await api.get<Employee[]>(
+    `/api/employees?storeId=${encodeURIComponent(storeId)}`
   );
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Employee));
+  return data || [];
 }
 
 export async function addEmployee(employee: Omit<Employee, "id">) {
-  await addDoc(collection(db, COLLECTION_NAME), {
-    ...employee,
-    createdAt: serverTimestamp(),
-  });
+  await api.post("/api/employees", employee);
 }
 
 export async function updateEmployee(
   id: string,
   data: Partial<Omit<Employee, "id" | "storeId" | "createdAt">>
 ) {
-  await updateDoc(doc(db, COLLECTION_NAME, id), {
-    ...data,
-    updatedAt: serverTimestamp(),
-  });
+  await api.patch(`/api/employees/${id}`, data);
 }
 
 export async function deleteEmployee(id: string) {
-  await deleteDoc(doc(db, COLLECTION_NAME, id));
+  await api.delete(`/api/employees/${id}`);
 }

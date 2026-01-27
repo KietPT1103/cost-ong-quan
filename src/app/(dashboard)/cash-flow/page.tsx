@@ -7,6 +7,7 @@ import Link from "next/link";
 import { ArrowLeft, BarChart3, Printer, X, Check, Calendar, TrendingUp, TrendingDown, DollarSign } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
+import { toDate } from "@/lib/dates";
 
 import { useAuth } from "@/context/AuthContext";
 import { useStore } from "@/context/StoreContext";
@@ -98,8 +99,8 @@ export default function CashFlowPage() {
       // Skip if not included in cash flow
       if (r.includeInCashFlow === false) return;
 
-      if (!r.createdAt?.seconds) return;
-      const date = new Date(r.createdAt.seconds * 1000);
+      const date = toDate(r.createdAt);
+      if (!date) return;
       const month = date.getMonth(); // 0-11
       const quarterIndex = Math.floor(month / 3);
 

@@ -87,7 +87,8 @@ export default function ProductsPage() {
   }
 
   async function loadCategories() {
-    const data = await getCategories();
+    if (!storeId) return;
+    const data = await getCategories(storeId);
     setCategories(data);
   }
 
@@ -471,7 +472,11 @@ export default function ProductsPage() {
                     />
                     <button
                       onClick={async () => {
-                        const id = await addCategory(newCategoryName);
+                        const id = await addCategory(
+                          newCategoryName,
+                          undefined,
+                          storeId
+                        );
                         if (id) {
                           await loadCategories();
                           setCategoryInput(newCategoryName);
@@ -608,7 +613,11 @@ export default function ProductsPage() {
                     />
                     <button
                       onClick={async () => {
-                        const id = await addCategory(newCategoryName);
+                        const id = await addCategory(
+                          newCategoryName,
+                          undefined,
+                          storeId
+                        );
                         if (id) {
                           await loadCategories();
                           setNewProduct({

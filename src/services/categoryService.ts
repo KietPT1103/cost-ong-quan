@@ -1,13 +1,4 @@
-import { db } from "@/lib/firebase";
-import {
-  addDoc,
-  collection,
-  getDocs,
-  orderBy,
-  query,
-  where,
-  serverTimestamp,
-} from "firebase/firestore";
+﻿import { api } from "@/lib/http";
 
 export type Category = {
   id: string;
@@ -17,24 +8,18 @@ export type Category = {
   storeId?: string;
 };
 
-const COLLECTION = "categories";
-
 export async function getCategories(storeId = "cafe"): Promise<Category[]> {
-  const q = query(
-    collection(db, COLLECTION),
-    where("storeId", "==", storeId),
-    orderBy("name", "asc")
+  const data = await api.get<Category[]>(
+    `/api/categories?storeId=${encodeURIComponent(storeId)}`
   );
-  const snap = await getDocs(q);
-  return snap.docs.map(
-    (doc) =>
-      ({
-        id: doc.id,
-        name: (doc.data() as any).name || doc.id,
-        description: (doc.data() as any).description || "",
-        order: (doc.data() as any).order,
-      } as Category)
-  );
+
+  return (data || []).map((c) => ({
+    id: c.id,
+    name: c.name || c.id,
+    description: c.description || "",
+    order: c.order,
+    storeId: c.storeId,
+  }));
 }
 
 export async function addCategory(
@@ -43,12 +28,10 @@ export async function addCategory(
   storeId = "cafe"
 ) {
   if (!name.trim()) return null;
-  const docRef = await addDoc(collection(db, COLLECTION), {
+  const res = await api.post<{ id: string }>("/api/categories", {
     name: name.trim(),
     description: description?.trim() || "",
-    order: Date.now(),
-    storeId: storeId,
-    createdAt: serverTimestamp(),
+    storeId,
   });
-  return docRef.id;
+  return res?.id ?? null;
 }

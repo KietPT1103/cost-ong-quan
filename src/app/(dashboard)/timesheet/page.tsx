@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import ShiftDetailModal, { Shift } from "./ShiftDetailModal";
 import React, { useState } from "react";
@@ -20,29 +20,22 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { getEmployees, Employee } from "@/services/employees.firebase";
-import { createPayroll, PayrollEntry } from "@/services/payrolls.firebase";
+import { api } from "@/lib/http";
 import { useAuth } from "@/context/AuthContext";
 import { useStore } from "@/context/StoreContext";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { db } from "@/lib/firebase";
-import {
-  collection,
-  doc,
-  writeBatch,
-  serverTimestamp,
-} from "firebase/firestore";
 
 const ROLE_GROUPS: Record<string, string[]> = {
-  Cafe: ["Phục vụ", "Pha chế", "Thu ngân"],
-  Bếp: ["Bếp", "Thu ngân bếp", "Phục vụ bếp", "Rửa chén"],
+  Cafe: ["Phuc vu", "Pha che", "Thu ngan"],
+  Bep: ["Bep", "Thu ngan bep", "Phuc vu bep", "Rua chen"],
   Farm: [
-    "Chăm sóc thú",
-    "Thú Y",
-    "Thu ngân farm",
-    "Soát vé",
-    "Thời vụ",
-    "Bán hàng",
+    "Cham soc thu",
+    "Thu y",
+    "Thu ngan farm",
+    "Soat ve",
+    "Thoi vu",
+    "Ban hang",
   ],
   Chung: ["Leader", "MKT"],
 };
@@ -223,7 +216,7 @@ export default function TimesheetPage() {
 
   const processData = async () => {
     if (!file || !startDate || !endDate) {
-      setError("Vui lòng chọn file và khoảng thời gian.");
+      setError("Vui lÃ²ng chá»n file vÃ  khoáº£ng thá»i gian.");
       return;
     }
     setLoading(true);
@@ -328,7 +321,7 @@ export default function TimesheetPage() {
           if (!matched) {
             // Determine if it looks like a missing OUT or just an error
             // Just log the time so user knows
-            errors.push(`Lẻ/Thiếu cặp: ${rows[i].DateTime}`);
+            errors.push(`Láº»/Thiáº¿u cáº·p: ${rows[i].DateTime}`);
 
             // Add Invalid Shift
             shifts.push({
@@ -384,14 +377,14 @@ export default function TimesheetPage() {
       setSummaryData(FinalSummaries);
     } catch (err) {
       console.error(err);
-      setError("Có lỗi xảy ra khi xử lý file.");
+      setError("CÃ³ lá»—i xáº£y ra khi xá»­ lÃ½ file.");
     } finally {
       setLoading(false);
     }
   };
 
   const handleRemoveEmployee = (empNo: string) => {
-    if (!confirm("Bạn có chắc muốn xóa nhân viên này khỏi báo cáo?")) return;
+    if (!confirm("Báº¡n cÃ³ cháº¯c muá»‘n xÃ³a nhÃ¢n viÃªn nÃ y khá»i bÃ¡o cÃ¡o?")) return;
     setSummaryData((prev) => prev.filter((item) => item.EnNo !== empNo));
   };
 
@@ -404,7 +397,7 @@ export default function TimesheetPage() {
     newSummary[index].SalaryPerHour = salary;
     // Calculate total salary
     // Formula: (TotalHours) * Salary? Or (Normal + Weekend * Multiplier)?
-    // User request: "tổng số giờ làm, tổng số giờ làm cuối tuần, tôi chỉ cần sửa lương của mỗi người là được"
+    // User request: "tá»•ng sá»‘ giá» lÃ m, tá»•ng sá»‘ giá» lÃ m cuá»‘i tuáº§n, tÃ´i chá»‰ cáº§n sá»­a lÆ°Æ¡ng cá»§a má»—i ngÆ°á»i lÃ  Ä‘Æ°á»£c"
     // Usually Weekend is x1.5 or x2, but user didn't specify. I will calculate simply: Total * Salary for now.
     // Or maybe they want to pay different rate for weekend?
     // I will assume single rate for now, but maybe highlight weekend.
@@ -449,7 +442,7 @@ export default function TimesheetPage() {
         if (s.isWeekend) newWeekend += rawHours;
       } else {
         if (!s.isValid) {
-          newErrors.push(`Lỗi/Thiếu: ${s.date} ${s.inTime || "?"}`);
+          newErrors.push(`Lá»—i/Thiáº¿u: ${s.date} ${s.inTime || "?"}`);
         }
       }
     });
@@ -507,69 +500,20 @@ export default function TimesheetPage() {
 
     setLoading(true);
     try {
-      const payrollName = `Bảng lương ${startDate} - ${endDate}`;
-      const batch = writeBatch(db);
-
-      const payrollRef = doc(collection(db, "payrolls"));
-      batch.set(payrollRef, {
-        storeId,
-        name: payrollName,
-        status: "draft",
-        createdAt: serverTimestamp(),
-      });
-
-      for (const emp of summaryData) {
-        let employeeId = emp.dbId;
-
-        if (employeeId) {
-          // Update existing employee info (Salary/Role)
-          const empRef = doc(db, "employees", employeeId);
-          batch.update(empRef, {
-            hourlyRate: emp.SalaryPerHour,
-            role: emp.Role,
-          });
-        } else {
-          // Create new employee
-          const newEmpRef = doc(collection(db, "employees"));
-          batch.set(newEmpRef, {
-            storeId,
-            name: emp.Name,
-            role: emp.Role || "Nhân viên",
-            hourlyRate: emp.SalaryPerHour,
-            createdAt: serverTimestamp(),
-          });
-          employeeId = newEmpRef.id;
+      const res = await api.post<{ payrollId: string }>(
+        "/api/timesheet/save",
+        {
+          storeId,
+          startDate,
+          endDate,
+          summaryData,
         }
-
-        const entryRef = doc(collection(db, "payroll_entries"));
-        const entryData: PayrollEntry = {
-          payrollId: payrollRef.id,
-          employeeId: employeeId || "unknown",
-          employeeName: emp.Name,
-          role: emp.Role || "Nhân viên",
-          hourlyRate: emp.SalaryPerHour,
-          totalHours: emp.TotalHours,
-          weekendHours: emp.WeekendHours,
-          salary: emp.TotalSalary,
-          allowances:
-            emp.Allowance > 0
-              ? [{ name: "Phụ cấp", amount: emp.Allowance }]
-              : [],
-          note: emp.Note,
-          salaryType: "hourly",
-          fixedSalary: 0,
-          standardHours: 0,
-          shifts: emp.Shifts, // Save detailed shifts
-        };
-        batch.set(entryRef, entryData);
-      }
-
-      await batch.commit();
-      alert("Đã lưu bảng lương thành công!");
+      );
+      alert(`Da luu bang luong thanh cong (ID: ${res.payrollId})`);
       // router.push("/payroll"); // Don't redirect
     } catch (e) {
       console.error(e);
-      setError("Lỗi khi lưu vào CSDL");
+      setError("Loi khi luu vao CSDL");
     } finally {
       setLoading(false);
     }
@@ -592,13 +536,13 @@ export default function TimesheetPage() {
     // Export functionality
     const ws = XLSX.utils.json_to_sheet(
       summaryData.map((s) => ({
-        "Tên Nhân Viên": s.Name,
-        "Mã NV": s.EnNo,
-        "Tổng Giờ": s.TotalHours,
-        "Giờ Cuối Tuần": s.WeekendHours,
-        "Lương/Giờ": s.SalaryPerHour,
-        "Tổng Lương": s.TotalSalary,
-        Lỗi: s.Errors.join("; "),
+        "TÃªn NhÃ¢n ViÃªn": s.Name,
+        "MÃ£ NV": s.EnNo,
+        "Tá»•ng Giá»": s.TotalHours,
+        "Giá» Cuá»‘i Tuáº§n": s.WeekendHours,
+        "LÆ°Æ¡ng/Giá»": s.SalaryPerHour,
+        "Tá»•ng LÆ°Æ¡ng": s.TotalSalary,
+        "Loi": s.Errors.join("; "),
       }))
     );
     const wb = XLSX.utils.book_new();
@@ -614,7 +558,7 @@ export default function TimesheetPage() {
             <ArrowLeft className="w-5 h-5 text-slate-500" />
           </Button>
           <h1 className="text-3xl font-bold bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-            Tính Lương & Giờ Làm (Import)
+            TÃ­nh LÆ°Æ¡ng & Giá» LÃ m (Import)
           </h1>
         </div>
       </div>
@@ -622,7 +566,7 @@ export default function TimesheetPage() {
       <Card className="p-6 grid grid-cols-1 md:grid-cols-4 gap-4 items-end bg-white/50 backdrop-blur-sm shadow-xl border-t border-white/20">
         <div className="space-y-2">
           <label className="text-sm font-medium text-gray-700">
-            File Chấm Công (TXT)
+            File Cháº¥m CÃ´ng (TXT)
           </label>
           <div className="relative">
             <input
@@ -638,7 +582,7 @@ export default function TimesheetPage() {
             >
               <FileText size={18} />
               <span className="truncate">
-                {file ? file.name : "Chọn file..."}
+                {file ? file.name : "Chá»n file..."}
               </span>
             </div>
           </div>
@@ -646,7 +590,7 @@ export default function TimesheetPage() {
 
         <div className="space-y-2">
           <label className="text-sm font-medium text-gray-700">
-            Từ Ngày (00:00)
+            Tá»« NgÃ y (00:00)
           </label>
           <Input
             type="date"
@@ -657,7 +601,7 @@ export default function TimesheetPage() {
 
         <div className="space-y-2">
           <label className="text-sm font-medium text-gray-700">
-            Đến Ngày (23:59)
+            Äáº¿n NgÃ y (23:59)
           </label>
           <Input
             type="date"
@@ -672,10 +616,10 @@ export default function TimesheetPage() {
           className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-200 transition-all hover:scale-105"
         >
           {loading ? (
-            "Đang tính..."
+            "Äang tÃ­nh..."
           ) : (
             <>
-              <Calculator className="mr-2 h-4 w-4" /> Tính Giờ Làm
+              <Calculator className="mr-2 h-4 w-4" /> TÃ­nh Giá» LÃ m
             </>
           )}
         </Button>
@@ -691,17 +635,17 @@ export default function TimesheetPage() {
         <Card className="p-6 shadow-xl border-t border-white/20 animate-in fade-in slide-in-from-bottom-4">
           <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
             <h2 className="text-xl font-semibold text-gray-800">
-              Kết Quả Tính Lương
+              Káº¿t Quáº£ TÃ­nh LÆ°Æ¡ng
             </h2>
             <div className="flex items-center gap-2 w-full md:w-auto">
               <div className="relative w-full md:w-64">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <span className="text-gray-500 sm:text-sm">🔍</span>
+                  <span className="text-gray-500 sm:text-sm">ðŸ”</span>
                 </div>
                 <input
                   type="text"
                   className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                  placeholder="Tìm tên hoặc mã NV..."
+                  placeholder="TÃ¬m tÃªn hoáº·c mÃ£ NV..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -720,7 +664,7 @@ export default function TimesheetPage() {
                 value={filterRole}
                 onChange={(e) => setFilterRole(e.target.value)}
               >
-                <option value="All">Tất cả vai trò</option>
+                <option value="All">Táº¥t cáº£ vai trÃ²</option>
                 {Object.keys(ROLE_GROUPS).map((group) => (
                   <optgroup key={group} label={group}>
                     {ROLE_GROUPS[group].map((role) => (
@@ -741,10 +685,10 @@ export default function TimesheetPage() {
                     : "text-gray-600"
                 }`}
                 onClick={() => setFilterError(!filterError)}
-                title="Chỉ hiện nhân viên có lỗi hoặc thiếu giờ"
+                title="Chá»‰ hiá»‡n nhÃ¢n viÃªn cÃ³ lá»—i hoáº·c thiáº¿u giá»"
               >
                 <AlertCircle size={16} />
-                <span className="hidden sm:inline">Lỗi</span>
+                <span className="hidden sm:inline">Lá»—i</span>
               </Button>
 
               <Button
@@ -752,7 +696,7 @@ export default function TimesheetPage() {
                 size="sm"
                 className="gap-2 h-9 text-gray-600"
                 onClick={() => handleSort("Name")}
-                title="Sắp xếp theo tên"
+                title="Sáº¯p xáº¿p theo tÃªn"
               >
                 <ArrowUpDown size={16} />
               </Button>
@@ -768,7 +712,7 @@ export default function TimesheetPage() {
                 onClick={handleSaveToDB}
                 className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-200 shrink-0 h-9"
               >
-                <Save className="mr-2 h-4 w-4" /> Lưu DB
+                <Save className="mr-2 h-4 w-4" /> LÆ°u DB
               </Button>
             </div>
           </div>
@@ -778,20 +722,20 @@ export default function TimesheetPage() {
               <table className="w-full text-sm text-left">
                 <thead className="text-xs text-gray-700 uppercase bg-gray-50 border-b sticky top-0 z-10 shadow-sm">
                   <tr>
-                    <th className="px-6 py-3 bg-gray-50">Mã NV</th>
-                    <th className="px-6 py-3 bg-gray-50">Tên Nhân Viên</th>
-                    <th className="px-6 py-3 bg-gray-50">Vai Trò</th>
+                    <th className="px-6 py-3 bg-gray-50">MÃ£ NV</th>
+                    <th className="px-6 py-3 bg-gray-50">TÃªn NhÃ¢n ViÃªn</th>
+                    <th className="px-6 py-3 bg-gray-50">Vai TrÃ²</th>
                     <th className="px-6 py-3 text-right bg-gray-50">
-                      Tổng Giờ Làm
+                      Tá»•ng Giá» LÃ m
                     </th>
                     <th className="px-6 py-3 text-right text-indigo-600 bg-gray-50">
-                      Giờ Cuối Tuần
+                      Giá» Cuá»‘i Tuáº§n
                     </th>
                     <th className="px-6 py-3 text-right w-32 bg-gray-50">
-                      Lương/Giờ
+                      LÆ°Æ¡ng/Giá»
                     </th>
                     <th className="px-6 py-3 text-right font-bold text-green-700 bg-gray-50">
-                      Tổng Lương
+                      Tá»•ng LÆ°Æ¡ng
                     </th>
                     <th className="px-6 py-3 bg-gray-50 w-10"></th>
                   </tr>
@@ -847,7 +791,7 @@ export default function TimesheetPage() {
                             handleRoleChange(emp.EnNo, e.target.value)
                           }
                         >
-                          <option value="">-- Chọn --</option>
+                          <option value="">-- Chá»n --</option>
                           {Object.entries(ROLE_GROUPS).map(([group, roles]) => (
                             <optgroup key={group} label={group}>
                               {roles.map((role) => (
@@ -900,13 +844,13 @@ export default function TimesheetPage() {
                         />
                       </td>
                       <td className="px-6 py-4 text-right font-bold text-green-700 font-mono">
-                        {emp.TotalSalary.toLocaleString("vi-VN")} đ
+                        {emp.TotalSalary.toLocaleString("vi-VN")} Ä‘
                       </td>
                       <td className="px-6 py-4 text-center">
                         <button
                           onClick={() => handleRemoveEmployee(emp.EnNo)}
                           className="text-gray-400 hover:text-red-600 transition-colors p-1"
-                          title="Xóa nhân viên này"
+                          title="XÃ³a nhÃ¢n viÃªn nÃ y"
                         >
                           <Trash2 size={18} />
                         </button>
@@ -920,7 +864,7 @@ export default function TimesheetPage() {
                       colSpan={3}
                       className="px-6 py-4 text-center text-indigo-800 uppercase tracking-wider"
                     >
-                      Tổng Cộng
+                      Tá»•ng Cá»™ng
                     </td>
                     <td className="px-6 py-4 text-right">
                       {filteredData
@@ -937,7 +881,7 @@ export default function TimesheetPage() {
                       {filteredData
                         .reduce((acc, curr) => acc + curr.TotalSalary, 0)
                         .toLocaleString("vi-VN")}{" "}
-                      đ
+                      Ä‘
                     </td>
                     <td className="bg-transparent"></td>
                   </tr>
@@ -959,7 +903,7 @@ export default function TimesheetPage() {
           }}
         >
           <p className="font-bold border-b border-gray-600 pb-1 mb-1 text-red-200">
-            Cảnh báo thiếu cặp:
+            Cáº£nh bÃ¡o thiáº¿u cáº·p:
           </p>
           <div className="max-h-32 overflow-y-auto custom-scrollbar">
             {hoveredError.errors.map((e, idx) => (
@@ -986,3 +930,4 @@ export default function TimesheetPage() {
     </div>
   );
 }
+

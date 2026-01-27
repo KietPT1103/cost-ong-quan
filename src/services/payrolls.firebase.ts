@@ -1,29 +1,15 @@
-import { db } from "@/lib/firebase";
-import {
-  collection,
-  doc,
-  getDocs,
-  addDoc,
-  updateDoc,
-  serverTimestamp,
-  query,
-  where,
-  writeBatch,
-  orderBy,
-  getDoc,
-  deleteDoc,
-} from "firebase/firestore";
+﻿import { api } from "@/lib/http";
+import { toDate } from "@/lib/dates";
 import { Employee } from "./employees.firebase";
 
 export type Payroll = {
   id?: string;
   storeId: string;
-  name: string; // e.g., "Jan 2025 - Period 1"
+  name: string;
   status: "draft" | "locked";
-  createdAt?: any;
+  createdAt?: Date | string | { seconds?: number };
 };
 
-// Shared Shift Interface
 export interface Shift {
   id: string;
   date: string;
@@ -46,26 +32,22 @@ export type PayrollEntry = {
   salary: number;
   allowances?: { name: string; amount: number }[];
   note: string;
-  // Fixed Salary Fields
-  salaryType?: "hourly" | "fixed"; // Default 'hourly' if undefined
-  fixedSalary?: number; // Lương cứng
-  standardHours?: number; // Định mức giờ (ví dụ 300)
-  shifts?: Shift[]; // Detailed shifts
+  salaryType?: "hourly" | "fixed";
+  fixedSalary?: number;
+  standardHours?: number;
+  shifts?: Shift[];
 };
 
-const PAYROLLS_COLLECTION = "payrolls";
-const ENTRIES_COLLECTION = "payroll_entries";
-
-// --- PAYROLLS ---
+function mapPayroll(p: Payroll): Payroll {
+  const createdAt = toDate(p.createdAt) ?? p.createdAt;
+  return { ...p, createdAt };
+}
 
 export async function getPayrolls(storeId: string): Promise<Payroll[]> {
-  const q = query(
-    collection(db, PAYROLLS_COLLECTION),
-    where("storeId", "==", storeId),
-    orderBy("createdAt", "desc")
+  const data = await api.get<Payroll[]>(
+    `/api/payrolls?storeId=${encodeURIComponent(storeId)}`
   );
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Payroll));
+  return (data || []).map(mapPayroll);
 }
 
 export async function createPayroll(
@@ -73,105 +55,42 @@ export async function createPayroll(
   name: string,
   employees: Employee[]
 ) {
-  const batch = writeBatch(db);
-
-  // 1. Create Payroll Record
-  const payrollRef = doc(collection(db, PAYROLLS_COLLECTION));
-  batch.set(payrollRef, {
+  const res = await api.post<{ payrollId: string }>("/api/payrolls", {
     storeId,
     name,
-    status: "draft",
-    createdAt: serverTimestamp(),
+    employees,
   });
-
-  // 2. Create Entries for each employee
-  employees.forEach((emp) => {
-    const entryRef = doc(collection(db, ENTRIES_COLLECTION));
-    const entryData: PayrollEntry = {
-      payrollId: payrollRef.id,
-      employeeId: emp.id || "unknown",
-      employeeName: emp.name || "Unknown",
-      role: emp.role || "Unknown",
-      hourlyRate: emp.hourlyRate,
-      totalHours: 0,
-      weekendHours: 0,
-      salary: 0,
-      allowances: [],
-      note: "",
-      salaryType: "hourly",
-      fixedSalary: 0,
-      standardHours: 0,
-    };
-    batch.set(entryRef, entryData);
-  });
-
-  await batch.commit();
-  return payrollRef.id;
+  return res.payrollId;
 }
 
 export async function deletePayroll(payrollId: string) {
-  // Note: Ideally, we should also delete all entries, but for simplicity
-  // allow them to be orphaned or delete them if needed carefully.
-  // For a robust app, use cloud functions or batch delete.
-  // Here we just update status to hidden or similar if needed,
-  // but let's stick to deleting the payroll doc for now.
-  // We'll leave entries for now or implement batch delete if user asks.
-  // Actually, let's try to consistency delete entries.
-
-  const entries = await getPayrollEntries(payrollId);
-  const batch = writeBatch(db);
-
-  batch.delete(doc(db, PAYROLLS_COLLECTION, payrollId));
-  entries.forEach((e) => {
-    if (e.id) batch.delete(doc(db, ENTRIES_COLLECTION, e.id));
-  });
-
-  await batch.commit();
+  await api.delete(`/api/payrolls/${payrollId}`);
 }
 
 export async function updatePayroll(id: string, data: Partial<Payroll>) {
-  await updateDoc(doc(db, PAYROLLS_COLLECTION, id), data);
+  await api.patch(`/api/payrolls/${id}`, data);
 }
-
-// --- ENTRIES ---
 
 export async function getPayrollEntries(
   payrollId: string
 ): Promise<PayrollEntry[]> {
-  const q = query(
-    collection(db, ENTRIES_COLLECTION),
-    where("payrollId", "==", payrollId)
-  );
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as PayrollEntry));
+  const qs = new URLSearchParams({ payrollId });
+  const data = await api.get<PayrollEntry[]>(`/api/payroll-entries?${qs.toString()}`);
+  return data || [];
 }
 
 export async function updatePayrollEntry(
   entryId: string,
   data: Partial<PayrollEntry>
 ) {
-  await updateDoc(doc(db, ENTRIES_COLLECTION, entryId), data);
+  await api.patch(`/api/payroll-entries/${entryId}`, data);
 }
 
 export async function addPayrollEntry(payrollId: string) {
-  const entryData: PayrollEntry = {
-    payrollId,
-    employeeId: "manual_" + Date.now(),
-    employeeName: "Nhân viên mới",
-    role: "Phục vụ",
-    hourlyRate: 0,
-    totalHours: 0,
-    weekendHours: 0,
-    salary: 0,
-    allowances: [],
-    note: "",
-    salaryType: "hourly",
-    fixedSalary: 0,
-    standardHours: 0,
-  };
-  await addDoc(collection(db, ENTRIES_COLLECTION), entryData);
+  const qs = new URLSearchParams({ payrollId });
+  await api.post(`/api/payroll-entries?${qs.toString()}`);
 }
 
 export async function deletePayrollEntry(entryId: string) {
-  await deleteDoc(doc(db, ENTRIES_COLLECTION, entryId));
+  await api.delete(`/api/payroll-entries/${entryId}`);
 }

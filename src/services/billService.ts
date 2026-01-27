@@ -1,19 +1,5 @@
-import { db } from "@/lib/firebase";
-import {
-  addDoc,
-  collection,
-  getDocs,
-  limit,
-  orderBy,
-  query,
-  serverTimestamp,
-  Timestamp,
-  where,
-  doc,
-  updateDoc,
-  deleteDoc,
-  QueryConstraint,
-} from "firebase/firestore";
+﻿import { api } from "@/lib/http";
+import { toDate, toIsoString } from "@/lib/dates";
 
 export type BillItemInput = {
   menuId: string;
@@ -33,83 +19,55 @@ export type NewBill = {
 
 export type Bill = NewBill & {
   id: string;
-  createdAt: Timestamp;
+  createdAt?: Date | string | { seconds?: number };
 };
 
-const BILLS_COLLECTION = "bills";
-
-export async function saveBill(data: NewBill) {
-  const payload: Record<string, unknown> = {
-    tableNumber: data.tableNumber,
-    total: data.total,
-    items: data.items,
-    storeId: data.storeId || "cafe",
-    createdAt: serverTimestamp(),
-  };
-
-  if (data.note && data.note.trim()) {
-    payload.note = data.note.trim();
-  }
-
-  const docRef = await addDoc(collection(db, BILLS_COLLECTION), payload);
-
-  return docRef.id;
-}
-
-export async function getRecentBills(storeId = "cafe", limitCount = 20) {
-  const q = query(
-    collection(db, BILLS_COLLECTION),
-    where("storeId", "==", storeId),
-    orderBy("createdAt", "desc"),
-    limit(limitCount)
-  );
-
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map(
-    (doc) =>
-      ({
-        id: doc.id,
-        ...(doc.data() as Omit<Bill, "id">),
-      } as Bill)
-  );
-}
-
-export async function getBills(options?: {
+type BillOptions = {
   startDate?: Date;
   endDate?: Date;
   limitCount?: number;
   storeId?: string;
-}) {
+};
+
+function mapBill(b: Bill): Bill {
+  const createdAt = toDate(b.createdAt) ?? b.createdAt;
+  return { ...b, createdAt };
+}
+
+export async function saveBill(data: NewBill) {
+  const res = await api.post<{ id: string }>("/api/bills", data);
+  return res.id;
+}
+
+export async function getRecentBills(storeId = "cafe", limitCount = 20) {
+  const qs = new URLSearchParams({
+    storeId,
+    limitCount: String(limitCount),
+  });
+  const data = await api.get<Bill[]>(`/api/bills?${qs.toString()}`);
+  return (data || []).map(mapBill);
+}
+
+export async function getBills(options?: BillOptions) {
   const {
     startDate,
     endDate,
     limitCount = 100,
     storeId = "cafe",
   } = options || {};
-  const constraints: QueryConstraint[] = [
-    where("storeId", "==", storeId),
-    orderBy("createdAt", "desc"),
-  ];
 
-  if (startDate) {
-    constraints.push(where("createdAt", ">=", Timestamp.fromDate(startDate)));
-  }
-  if (endDate) {
-    constraints.push(where("createdAt", "<=", Timestamp.fromDate(endDate)));
-  }
-  if (limitCount) {
-    constraints.push(limit(limitCount));
-  }
+  const qs = new URLSearchParams({
+    storeId,
+    limitCount: String(limitCount),
+  });
 
-  const q = query(collection(db, BILLS_COLLECTION), ...constraints);
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map(
-    (doc) =>
-      ({
-        id: doc.id,
-        ...(doc.data() as Omit<Bill, "id">),
-      } as Bill)
-  );
+  const startIso = toIsoString(startDate);
+  const endIso = toIsoString(endDate);
+  if (startIso) qs.set("startDate", startIso);
+  if (endIso) qs.set("endDate", endIso);
+
+  const data = await api.get<Bill[]>(`/api/bills?${qs.toString()}`);
+  return (data || []).map(mapBill);
 }
 
 export async function updateBill(
@@ -122,20 +80,16 @@ export async function updateBill(
   if (data.total !== undefined) payload.total = data.total;
   if (data.items !== undefined) payload.items = data.items;
   if (data.storeId !== undefined) payload.storeId = data.storeId;
+  if (data.note !== undefined) payload.note = data.note?.trim() || "";
 
-  if (data.note !== undefined) {
-    payload.note = data.note?.trim() || "";
-  }
-
-  if (data.createdAt) {
-    payload.createdAt = Timestamp.fromDate(data.createdAt);
-  }
+  const createdAtIso = toIsoString(data.createdAt);
+  if (createdAtIso) payload.createdAt = createdAtIso;
 
   if (Object.keys(payload).length === 0) return;
 
-  await updateDoc(doc(db, BILLS_COLLECTION, id), payload);
+  await api.patch(`/api/bills/${id}`, payload);
 }
 
 export async function deleteBill(id: string) {
-  await deleteDoc(doc(db, BILLS_COLLECTION, id));
+  await api.delete(`/api/bills/${id}`);
 }

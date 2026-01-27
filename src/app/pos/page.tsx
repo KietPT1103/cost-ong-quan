@@ -387,7 +387,7 @@ export default function CafePosPage() {
     try {
       const id = await addTable(newTableName, newTableArea, storeId);
       if (id) {
-        const refreshed = await getTables();
+        const refreshed = await getTables(storeId);
         setTables(refreshed);
         setTableNumber(newTableName.trim());
         setNewTableName("");

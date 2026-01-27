@@ -2,8 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { User, onAuthStateChanged, signOut } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
-import { auth, db } from "@/lib/firebase";
+import { auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 
 type Role = "admin" | "user";
@@ -34,14 +33,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (currentUser) {
         setUser(currentUser);
         try {
-          // Fetch role from Firestore
-          const userDoc = await getDoc(doc(db, "users", currentUser.uid));
-          if (userDoc.exists()) {
-            setRole(userDoc.data().role as Role);
+          const email = currentUser.email?.trim();
+          if (email) {
+            const res = await fetch(
+              `/api/users/role?email=${encodeURIComponent(email)}`,
+              { cache: "no-store" }
+            );
+            const json = (await res.json()) as {
+              data?: { role?: Role };
+              error?: string;
+            };
+            if (res.ok && json.data?.role) {
+              setRole(json.data.role);
+            } else {
+              setRole("user");
+            }
           } else {
-            // Default role or handle new user
-            console.log("No user document found, defaulting to user role");
-            setRole("user");
+            // Fallback to UID lookup if email is not available
+            const res = await fetch(`/api/users/${currentUser.uid}`, {
+              cache: "no-store",
+            });
+            const json = (await res.json()) as {
+              data?: { role?: Role };
+              error?: string;
+            };
+            if (res.ok && json.data?.role) {
+              setRole(json.data.role);
+            } else {
+              setRole("user");
+            }
           }
         } catch (error) {
           console.error("Error fetching user role:", error);

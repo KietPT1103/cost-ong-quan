@@ -1,12 +1,4 @@
-import { db } from "@/lib/firebase";
-import {
-  doc,
-  setDoc,
-  getDoc,
-  getDocs,
-  collection,
-  serverTimestamp,
-} from "firebase/firestore";
+﻿import { api } from "@/lib/http";
 
 export type ProductCost = {
   product_code: string;
@@ -17,26 +9,19 @@ export type ProductCost = {
   category?: string;
 };
 
-// Lưu / cập nhật cost
-export async function saveProductCost(data: ProductCost) {
-  await setDoc(
-    doc(db, "products", data.product_code),
-    {
-      ...data,
-      updatedAt: serverTimestamp(),
-    },
-    { merge: true }
-  );
+export async function saveProductCost(data: ProductCost, storeId = "cafe") {
+  await api.post("/api/products", {
+    ...data,
+    has_cost: true,
+    storeId,
+  });
 }
 
-// Lấy cost theo mã
-export async function getProductCost(productCode: string) {
-  const snap = await getDoc(doc(db, "products", productCode));
-  return snap.exists() ? snap.data() : null;
+export async function getProductCost(productCode: string, storeId = "cafe") {
+  const qs = new URLSearchParams({ productCode, storeId });
+  return api.get(`/api/products/by-code?${qs.toString()}`);
 }
 
-// Lấy toàn bộ cost
-export async function getAllProductCosts() {
-  const snapshot = await getDocs(collection(db, "products"));
-  return snapshot.docs.map((d) => d.data());
+export async function getAllProductCosts(storeId = "cafe") {
+  return api.get(`/api/products?storeId=${encodeURIComponent(storeId)}`);
 }

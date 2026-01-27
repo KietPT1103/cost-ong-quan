@@ -7,6 +7,7 @@ import Link from "next/link";
 import { ArrowLeft, FileText, Search, Calendar, Pencil, Check, X, CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { toDate } from "@/lib/dates";
 
 import RoleGuard from "@/components/RoleGuard";
 
@@ -206,11 +207,8 @@ export default function ReportsPage() {
                           className="hover:bg-gray-50/80 transition-colors group"
                         >
                           <td className="px-6 py-4 text-gray-500">
-                            {r.createdAt?.seconds
-                              ? new Date(
-                                  r.createdAt.seconds * 1000
-                                ).toLocaleString("vi-VN")
-                              : "N/A"}
+                            {toDate(r.createdAt)?.toLocaleString("vi-VN") ??
+                              "N/A"}
                           </td>
                           <td className="px-6 py-4 font-medium text-gray-900">
                             {editingId === r.id ? (

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import {
@@ -21,6 +21,7 @@ import {
 import { Button } from "@/components/ui/Button";
 import ResultTable from "@/components/ResultTable";
 import { useParams, useRouter } from "next/navigation";
+import { toDate } from "@/lib/dates";
 
 import RoleGuard from "@/components/RoleGuard";
 
@@ -39,7 +40,7 @@ export default function ReportDetailPage() {
       try {
         const data = await getReportById(String(params.id));
         if (!data) {
-          alert("Không tìm thấy báo cáo");
+          alert("KhÃ´ng tÃ¬m tháº¥y bÃ¡o cÃ¡o");
           router.push("/reports");
           return;
         }
@@ -47,7 +48,7 @@ export default function ReportDetailPage() {
         setOriginalReport(data);
       } catch (error) {
         console.error(error);
-        alert("Lỗi khi tải báo cáo");
+        alert("Lá»—i khi táº£i bÃ¡o cÃ¡o");
       } finally {
         setLoading(false);
       }
@@ -85,10 +86,10 @@ export default function ReportDetailPage() {
       setReport({ ...report, ...dataToUpdate });
       setOriginalReport({ ...report, ...dataToUpdate });
       setIsEditing(false);
-      alert("Đã cập nhật báo cáo");
+      alert("ÄÃ£ cáº­p nháº­t bÃ¡o cÃ¡o");
     } catch (error) {
       console.error(error);
-      alert("Lỗi khi cập nhật");
+      alert("Lá»—i khi cáº­p nháº­t");
     } finally {
       setSaving(false);
     }
@@ -101,20 +102,20 @@ export default function ReportDetailPage() {
 
   const handleDelete = async () => {
     if (!report?.id) return;
-    if (!confirm("Bạn có chắc chắn muốn xoá báo cáo này không?")) return;
+    if (!confirm("Báº¡n cÃ³ cháº¯c cháº¯n muá»‘n xoÃ¡ bÃ¡o cÃ¡o nÃ y khÃ´ng?")) return;
     try {
       await deleteReport(report.id);
       router.push("/reports");
     } catch (error) {
       console.error(error);
-      alert("Lỗi khi xoá báo cáo");
+      alert("Lá»—i khi xoÃ¡ bÃ¡o cÃ¡o");
     }
   };
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        Đang tải...
+        Äang táº£i...
       </div>
     );
   }
@@ -131,22 +132,18 @@ export default function ReportDetailPage() {
               <Link
                 href="/reports"
                 className="p-2 rounded-full hover:bg-white bg-white/50 transition-colors text-gray-600 shadow-sm"
-                title="Quay lại danh sách"
+                title="Quay láº¡i danh sÃ¡ch"
               >
                 <ArrowLeft className="w-6 h-6" />
               </Link>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">
-                  Chi tiết báo cáo
+                  Chi tiáº¿t bÃ¡o cÃ¡o
                 </h1>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
                   <Calendar className="w-4 h-4" />
-                  {report.createdAt?.seconds
-                    ? new Date(report.createdAt.seconds * 1000).toLocaleString(
-                        "vi-VN"
-                      )
-                    : "N/A"}
-                  <span className="mx-1">•</span>
+                  {toDate(report.createdAt)?.toLocaleString("vi-VN") ?? "N/A"}
+                  <span className="mx-1">â€¢</span>
                   <span className="font-medium text-gray-700">
                     {report.fileName}
                   </span>
@@ -162,7 +159,7 @@ export default function ReportDetailPage() {
                     className="gap-2"
                   >
                     <Printer className="w-4 h-4" />
-                    In báo cáo
+                    In bÃ¡o cÃ¡o
                   </Button>
                   <Button
                     variant="default"
@@ -170,7 +167,7 @@ export default function ReportDetailPage() {
                     className="gap-2 bg-blue-600 hover:bg-blue-700"
                   >
                     <Pencil className="w-4 h-4" />
-                    Chỉnh sửa
+                    Chá»‰nh sá»­a
                   </Button>
                   <Button
                     variant="destructive"
@@ -178,7 +175,7 @@ export default function ReportDetailPage() {
                     className="gap-2"
                   >
                     <Trash2 className="w-4 h-4" />
-                    Xoá
+                    XoÃ¡
                   </Button>
                 </>
               ) : (
@@ -190,7 +187,7 @@ export default function ReportDetailPage() {
                     disabled={saving}
                   >
                     <X className="w-4 h-4" />
-                    Huỷ
+                    Huá»·
                   </Button>
                   <Button
                     variant="default"
@@ -199,7 +196,7 @@ export default function ReportDetailPage() {
                     disabled={saving}
                   >
                     <Save className="w-4 h-4" />
-                    {saving ? "Đang lưu..." : "Lưu thay đổi"}
+                    {saving ? "Äang lÆ°u..." : "LÆ°u thay Ä‘á»•i"}
                   </Button>
                 </>
               )}
@@ -220,7 +217,7 @@ export default function ReportDetailPage() {
           {/* Details Table */}
           <Card>
             <CardHeader>
-              <CardTitle>Chi tiết sản phẩm</CardTitle>
+              <CardTitle>Chi tiáº¿t sáº£n pháº©m</CardTitle>
             </CardHeader>
             <CardContent className="p-0 overflow-hidden">
               <div className="max-h-[600px] overflow-auto">
@@ -228,19 +225,19 @@ export default function ReportDetailPage() {
                   <thead className="bg-slate-50 sticky top-0 z-10">
                     <tr>
                       <th className="px-6 py-3 text-left font-medium text-muted-foreground border-b">
-                        Mã hàng
+                        MÃ£ hÃ ng
                       </th>
                       <th className="px-6 py-3 text-left font-medium text-muted-foreground border-b">
-                        Tên sản phẩm
+                        TÃªn sáº£n pháº©m
                       </th>
                       <th className="px-6 py-3 text-right font-medium text-muted-foreground border-b">
-                        Số lượng
+                        Sá»‘ lÆ°á»£ng
                       </th>
                       <th className="px-6 py-3 text-right font-medium text-muted-foreground border-b">
-                        Cost/đơn
+                        Cost/Ä‘Æ¡n
                       </th>
                       <th className="px-6 py-3 text-right font-medium text-muted-foreground border-b">
-                        Tổng Cost
+                        Tá»•ng Cost
                       </th>
                     </tr>
                   </thead>
@@ -275,3 +272,5 @@ export default function ReportDetailPage() {
     </RoleGuard>
   );
 }
+
+

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import {
@@ -23,6 +23,7 @@ import {
   X,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/Card";
+import { toDate } from "@/lib/dates";
 
 export default function PayrollManager({
   storeId,
@@ -50,14 +51,14 @@ export default function PayrollManager({
 
   async function handleCreate() {
     if (!newPayrollName) {
-      alert("Vui lòng nhập tên bảng lương (Ví dụ: Tháng 1 - Đợt 1)");
+      alert("Vui lÃ²ng nháº­p tÃªn báº£ng lÆ°Æ¡ng (VÃ­ dá»¥: ThÃ¡ng 1 - Äá»£t 1)");
       return;
     }
     setLoading(true);
     try {
       const employees = await getEmployees(storeId);
       if (employees.length === 0) {
-        alert("Chưa có nhân viên nào để tạo bảng lương.");
+        alert("ChÆ°a cÃ³ nhÃ¢n viÃªn nÃ o Ä‘á»ƒ táº¡o báº£ng lÆ°Æ¡ng.");
         return;
       }
       const payrollId = await createPayroll(storeId, newPayrollName, employees);
@@ -66,20 +67,20 @@ export default function PayrollManager({
       onSelectPayroll(payrollId); // Switch to detail view immediately
     } catch (error) {
       console.error(error);
-      alert("Lỗi khi tạo bảng lương");
+      alert("Lá»—i khi táº¡o báº£ng lÆ°Æ¡ng");
     } finally {
       setLoading(false);
     }
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Bạn có chắc muốn xóa bảng lương này?")) return;
+    if (!confirm("Báº¡n cÃ³ cháº¯c muá»‘n xÃ³a báº£ng lÆ°Æ¡ng nÃ y?")) return;
     try {
       await deletePayroll(id);
       await loadPayrolls();
     } catch (e) {
       console.error(e);
-      alert("Lỗi khi xóa");
+      alert("Lá»—i khi xÃ³a");
     }
   }
 
@@ -91,7 +92,7 @@ export default function PayrollManager({
       setEditingId(null);
     } catch (error) {
       console.error(error);
-      alert("Lỗi khi đổi tên");
+      alert("Lá»—i khi Ä‘á»•i tÃªn");
     }
   }
 
@@ -109,11 +110,11 @@ export default function PayrollManager({
       <div className="flex flex-col sm:flex-row gap-4 items-end bg-white p-4 rounded-lg border shadow-sm">
         <div className="flex-1 w-full space-y-2">
           <label className="text-sm font-medium text-slate-700">
-            Tạo bảng lương mới
+            Táº¡o báº£ng lÆ°Æ¡ng má»›i
           </label>
           <div className="flex gap-2">
             <Input
-              placeholder="Ví dụ: Tháng 1 - Đợt 1"
+              placeholder="VÃ­ dá»¥: ThÃ¡ng 1 - Äá»£t 1"
               value={newPayrollName}
               onChange={(e) => setNewPayrollName(e.target.value)}
             />
@@ -123,7 +124,7 @@ export default function PayrollManager({
               className="gap-2 shrink-0"
             >
               <Plus className="w-4 h-4" />
-              Tạo mới
+              Táº¡o má»›i
             </Button>
             <Button
               variant="outline"
@@ -131,7 +132,7 @@ export default function PayrollManager({
               className="gap-2 shrink-0 text-indigo-600 border-indigo-200 hover:bg-indigo-50"
             >
               <ExternalLink className="w-4 h-4" />
-              Import Chấm Công
+              Import Cháº¥m CÃ´ng
             </Button>
           </div>
         </div>
@@ -183,9 +184,7 @@ export default function PayrollManager({
                 )}
                 <div className="flex items-center gap-2 text-sm text-slate-500 mt-1">
                   <CalendarDays className="w-3.5 h-3.5" />
-                  {p.createdAt?.toDate
-                    ? p.createdAt.toDate().toLocaleDateString("vi-VN")
-                    : "Vừa xong"}
+                  {toDate(p.createdAt)?.toLocaleDateString("vi-VN") ?? "Vua xong"}
                 </div>
                 <div className="mt-3 flex items-center justify-between">
                   <span
@@ -195,7 +194,7 @@ export default function PayrollManager({
                         : "bg-emerald-50 border-emerald-100 text-emerald-600"
                     }`}
                   >
-                    {p.status === "locked" ? "Đã chốt" : "Đang làm"}
+                    {p.status === "locked" ? "ÄÃ£ chá»‘t" : "Äang lÃ m"}
                   </span>
                   <ExternalLink className="w-4 h-4 text-slate-300 group-hover:text-indigo-500" />
                 </div>
@@ -225,10 +224,11 @@ export default function PayrollManager({
         ))}
         {payrolls.length === 0 && (
           <div className="col-span-full py-12 text-center text-slate-500 bg-slate-50 rounded-lg border border-dashed">
-            Chưa có bảng lương nào. Hãy tạo bảng lương đầu tiên!
+            ChÆ°a cÃ³ báº£ng lÆ°Æ¡ng nÃ o. HÃ£y táº¡o báº£ng lÆ°Æ¡ng Ä‘áº§u tiÃªn!
           </div>
         )}
       </div>
     </div>
   );
 }
+
