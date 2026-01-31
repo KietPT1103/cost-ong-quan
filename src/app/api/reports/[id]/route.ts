@@ -10,12 +10,17 @@ function toDate(value: unknown) {
   return Number.isNaN(d.getTime()) ? undefined : d;
 }
 
+function requireObjectId(id: string) {
+  const objectId = parseObjectId(id);
+  return objectId;
+}
+
 export async function GET(
   _request: Request,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
-  const { id } = context.params;
-  const objectId = parseObjectId(id);
+  const { id } = await context.params;
+  const objectId = id ? requireObjectId(id) : null;
   if (!objectId) return err("Invalid report id", 400);
 
   try {
@@ -30,10 +35,10 @@ export async function GET(
 
 export async function PATCH(
   request: Request,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
-  const { id } = context.params;
-  const objectId = parseObjectId(id);
+  const { id } = await context.params;
+  const objectId = id ? requireObjectId(id) : null;
   if (!objectId) return err("Invalid report id", 400);
 
   try {
@@ -67,15 +72,17 @@ export async function PATCH(
 
 export async function DELETE(
   _request: Request,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
-  const { id } = context.params;
-  const objectId = parseObjectId(id);
+  const { id } = await context.params;
+  const objectId = id ? requireObjectId(id) : null;
   if (!objectId) return err("Invalid report id", 400);
 
   try {
     const db = await getDb();
-    const result = await db.collection(COLLECTION).deleteOne({ _id: objectId });
+    const result = await db
+      .collection(COLLECTION)
+      .deleteOne({ _id: objectId });
     return ok({ deletedCount: result.deletedCount });
   } catch (e) {
     return err("Failed to delete report", 500, String(e));

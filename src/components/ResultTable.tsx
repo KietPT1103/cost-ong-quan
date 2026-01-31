@@ -73,14 +73,18 @@ export default function ResultTable({
             <ProgressRow label="Chi phí khác" value={other} colorClass="bg-rose-500" />
         </div>
         
-        <div className="pt-4 border-t border-slate-200">
+        <div className="pt-4 border-t border-slate-200 space-y-2">
+            <div className="flex justify-between items-center">
+                <span className="text-slate-600 font-medium">Tổng doanh thu</span>
+                <span className="text-slate-900 font-semibold">{formatMoney(revenue)}</span>
+            </div>
             <div className="flex justify-between items-center">
                 <span className="text-slate-600 font-medium">Tổng chi phí vận hành</span>
                 <span className="text-slate-900 font-bold text-lg">{formatMoney(totalCost)}</span>
             </div>
-             <div className="text-right mt-1">
-                 <span className="text-xs text-slate-400">{percent(totalCost)}% doanh thu</span>
-             </div>
+            <div className="text-right">
+                <span className="text-xs text-slate-400">{percent(totalCost)}% doanh thu</span>
+            </div>
         </div>
       </CardContent>
     </Card>

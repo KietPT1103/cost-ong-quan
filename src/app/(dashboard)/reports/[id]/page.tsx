@@ -40,7 +40,7 @@ export default function ReportDetailPage() {
       try {
         const data = await getReportById(String(params.id));
         if (!data) {
-          alert("KhÃ´ng tÃ¬m tháº¥y bÃ¡o cÃ¡o");
+          alert("Không tìm thấy báo cáo");
           router.push("/reports");
           return;
         }
@@ -48,7 +48,7 @@ export default function ReportDetailPage() {
         setOriginalReport(data);
       } catch (error) {
         console.error(error);
-        alert("Lá»—i khi táº£i bÃ¡o cÃ¡o");
+        alert("Lỗi khi tải báo cáo");
       } finally {
         setLoading(false);
       }
@@ -86,10 +86,10 @@ export default function ReportDetailPage() {
       setReport({ ...report, ...dataToUpdate });
       setOriginalReport({ ...report, ...dataToUpdate });
       setIsEditing(false);
-      alert("ÄÃ£ cáº­p nháº­t bÃ¡o cÃ¡o");
+      alert("Đã cập nhật báo cáo");
     } catch (error) {
       console.error(error);
-      alert("Lá»—i khi cáº­p nháº­t");
+      alert("Lỗi khi cập nhật");
     } finally {
       setSaving(false);
     }
@@ -102,20 +102,20 @@ export default function ReportDetailPage() {
 
   const handleDelete = async () => {
     if (!report?.id) return;
-    if (!confirm("Báº¡n cÃ³ cháº¯c cháº¯n muá»‘n xoÃ¡ bÃ¡o cÃ¡o nÃ y khÃ´ng?")) return;
+    if (!confirm("Bạn có chắc chắn muốn xoá báo cáo này không?")) return;
     try {
       await deleteReport(report.id);
       router.push("/reports");
     } catch (error) {
       console.error(error);
-      alert("Lá»—i khi xoÃ¡ bÃ¡o cÃ¡o");
+      alert("Lỗi khi xoá báo cáo");
     }
   };
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        Äang táº£i...
+        Đang tải...
       </div>
     );
   }
@@ -132,18 +132,18 @@ export default function ReportDetailPage() {
               <Link
                 href="/reports"
                 className="p-2 rounded-full hover:bg-white bg-white/50 transition-colors text-gray-600 shadow-sm"
-                title="Quay láº¡i danh sÃ¡ch"
+                title="Quay lại danh sách"
               >
                 <ArrowLeft className="w-6 h-6" />
               </Link>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">
-                  Chi tiáº¿t bÃ¡o cÃ¡o
+                  Chi tiết báo cáo
                 </h1>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
                   <Calendar className="w-4 h-4" />
                   {toDate(report.createdAt)?.toLocaleString("vi-VN") ?? "N/A"}
-                  <span className="mx-1">â€¢</span>
+                  <span className="mx-1">•</span>
                   <span className="font-medium text-gray-700">
                     {report.fileName}
                   </span>
@@ -159,7 +159,7 @@ export default function ReportDetailPage() {
                     className="gap-2"
                   >
                     <Printer className="w-4 h-4" />
-                    In bÃ¡o cÃ¡o
+                    In báo cáo
                   </Button>
                   <Button
                     variant="default"
@@ -167,7 +167,7 @@ export default function ReportDetailPage() {
                     className="gap-2 bg-blue-600 hover:bg-blue-700"
                   >
                     <Pencil className="w-4 h-4" />
-                    Chá»‰nh sá»­a
+                    Chỉnh sửa
                   </Button>
                   <Button
                     variant="destructive"
@@ -175,7 +175,7 @@ export default function ReportDetailPage() {
                     className="gap-2"
                   >
                     <Trash2 className="w-4 h-4" />
-                    XoÃ¡
+                    Xoá
                   </Button>
                 </>
               ) : (
@@ -187,7 +187,7 @@ export default function ReportDetailPage() {
                     disabled={saving}
                   >
                     <X className="w-4 h-4" />
-                    Huá»·
+                    Huỷ
                   </Button>
                   <Button
                     variant="default"
@@ -196,7 +196,7 @@ export default function ReportDetailPage() {
                     disabled={saving}
                   >
                     <Save className="w-4 h-4" />
-                    {saving ? "Äang lÆ°u..." : "LÆ°u thay Ä‘á»•i"}
+                    {saving ? "Đang lưu..." : "Lưu thay đổi"}
                   </Button>
                 </>
               )}
@@ -217,7 +217,7 @@ export default function ReportDetailPage() {
           {/* Details Table */}
           <Card>
             <CardHeader>
-              <CardTitle>Chi tiáº¿t sáº£n pháº©m</CardTitle>
+              <CardTitle>Chi tiết sản phẩm</CardTitle>
             </CardHeader>
             <CardContent className="p-0 overflow-hidden">
               <div className="max-h-[600px] overflow-auto">
@@ -225,19 +225,19 @@ export default function ReportDetailPage() {
                   <thead className="bg-slate-50 sticky top-0 z-10">
                     <tr>
                       <th className="px-6 py-3 text-left font-medium text-muted-foreground border-b">
-                        MÃ£ hÃ ng
+                        Mã hàng
                       </th>
                       <th className="px-6 py-3 text-left font-medium text-muted-foreground border-b">
-                        TÃªn sáº£n pháº©m
+                        Tên sản phẩm
                       </th>
                       <th className="px-6 py-3 text-right font-medium text-muted-foreground border-b">
-                        Sá»‘ lÆ°á»£ng
+                        Số lượng
                       </th>
                       <th className="px-6 py-3 text-right font-medium text-muted-foreground border-b">
-                        Cost/Ä‘Æ¡n
+                        Cost/đơn
                       </th>
                       <th className="px-6 py-3 text-right font-medium text-muted-foreground border-b">
-                        Tá»•ng Cost
+                        Tổng Cost
                       </th>
                     </tr>
                   </thead>

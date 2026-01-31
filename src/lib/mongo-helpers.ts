@@ -23,7 +23,8 @@ export function toPlain<T extends { _id?: unknown }>(doc: T) {
   const { _id, ...rest } = doc as T & { _id?: unknown };
   const base = serializeValue(rest) as Record<string, unknown>;
   if (_id) {
-    return { id: serializeValue(_id), ...base };
+    const { id: _ignored, ...restBase } = base;
+    return { ...restBase, id: serializeValue(_id) };
   }
   return base;
 }
